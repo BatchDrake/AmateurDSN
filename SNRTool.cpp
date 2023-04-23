@@ -22,6 +22,7 @@
 #include <UIMediator.h>
 #include <MainSpectrum.h>
 #include <PowerProcessor.h>
+#include <QClipboard>
 #include <QMessageBox>
 #include <Suscan/AnalyzerRequestTracker.h>
 
@@ -198,6 +199,12 @@ SNRTool::connectAll()
         SIGNAL(toggled(bool)),
         this,
         SLOT(onConfigChanged()));
+
+  connect(
+        ui->copyButton,
+        SIGNAL(clicked(bool)),
+        this,
+        SLOT(onCopyAll()));
 }
 
 void
@@ -486,7 +493,7 @@ SNRTool::refreshMeasurements()
 
   snnr = signalNoise / noise;
   if (snnr <= 0) {
-    ui->snrLabel->setText("N/A");
+    ui->snnrLabel->setText("N/A");
     ui->snnrDbLabel->setText("N/A");
   } else {
     ui->snnrLabel->setText(
@@ -507,6 +514,20 @@ SNRTool::refreshMeasurements()
           QString::asprintf("%+6.3f %s",
             SU_POWER_DB_RAW(SU_ASFLOAT(snr)), dbUnits));
   }
+
+  m_clipBoardText =
+        "S+N:  " + ui->spnLabel->text() + " (" + ui->spnDbLabel->text()
+      + ") in "
+      + SuWidgetsHelpers::formatQuantity(ui->snBandwidthSpin->value(), 6, "Hz")
+      + "\n"
+      + "N:    " + ui->nLabel->text() + " (" + ui->nDbLabel->text()
+      + ") in "
+      + SuWidgetsHelpers::formatQuantity(ui->nBandwidthSpin->value(), 6, "Hz")
+      + "\n"
+      + "SNNR: " + ui->snnrLabel->text() + " (" + ui->snnrDbLabel->text()
+      + ")\n"
+      + "SNR:  " + ui->snrLabel->text() + " (" + ui->snrDbLabel->text()
+      + ")\n";
 }
 
 void
@@ -737,4 +758,10 @@ void
 SNRTool::onConfigChanged()
 {
   m_panelConfig->normalize = ui->normalizeCheck->isChecked();
+}
+
+void
+SNRTool::onCopyAll()
+{
+  QApplication::clipboard()->setText(m_clipBoardText);
 }

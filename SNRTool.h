@@ -71,7 +71,7 @@ namespace SigDigger {
     PowerProcessor *m_noiseProcessor = nullptr;
 
     SNRToolConfig *m_panelConfig = nullptr;
-
+    QString m_clipBoardText;
     // In hold mode:
     //    We set the integration time to T_i = MAX(100 ms, 1 / equiv_fs)
     //    We configure the alpha to tau / T_i
@@ -136,6 +136,8 @@ namespace SigDigger {
 
     void onTauChanged(qreal, qreal);
     void onConfigChanged();
+
+    void onCopyAll();
 
   private:
     Ui::SNRTool *ui;
