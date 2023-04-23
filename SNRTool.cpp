@@ -36,6 +36,7 @@ void
 SNRToolConfig::deserialize(Suscan::Object const &conf)
 {
   LOAD(collapsed);
+  LOAD(normalize);
   LOAD(tau);
 }
 
@@ -47,6 +48,7 @@ SNRToolConfig::serialize()
   obj.setClass("SNRToolConfig");
 
   STORE(collapsed);
+  STORE(normalize);
   STORE(tau);
 
   return persist(obj);
@@ -160,6 +162,42 @@ SNRTool::connectAll()
         SIGNAL(clicked(bool)),
         this,
         SLOT(onSignalNoiseCancel()));
+
+  connect(
+        this->ui->snFrequencySpin,
+        SIGNAL(valueChanged(double)),
+        this,
+        SLOT(onSignalNoiseAdjust()));
+
+  connect(
+        this->ui->snBandwidthSpin,
+        SIGNAL(valueChanged(double)),
+        this,
+        SLOT(onSignalNoiseAdjust()));
+
+  connect(
+        this->ui->nFrequencySpin,
+        SIGNAL(valueChanged(double)),
+        this,
+        SLOT(onNoiseAdjust()));
+
+  connect(
+        this->ui->nBandwidthSpin,
+        SIGNAL(valueChanged(double)),
+        this,
+        SLOT(onNoiseAdjust()));
+
+  connect(
+        m_spectrum,
+        SIGNAL(frequencyChanged(qint64)),
+        this,
+        SLOT(onSpectrumFrequencyChanged(qint64)));
+
+  connect(
+        ui->normalizeCheck,
+        SIGNAL(toggled(bool)),
+        this,
+        SLOT(onConfigChanged()));
 }
 
 void
@@ -168,6 +206,14 @@ SNRTool::refreshUi()
   bool snRunning = m_signalNoiseProcessor->isRunning();
   bool nRunning  = m_noiseProcessor->isRunning();
   bool canRun    = m_analyzer != nullptr;
+  bool canAdjustSignalNoise = m_signalNoiseProcessor->state() >= POWER_PROCESSOR_CONFIGURING;
+  bool canAdjustNoise = m_noiseProcessor->state() >= POWER_PROCESSOR_CONFIGURING;
+
+  ui->snFrequencySpin->setEnabled(canAdjustSignalNoise);
+  ui->snBandwidthSpin->setEnabled(canAdjustSignalNoise);
+
+  ui->nFrequencySpin->setEnabled(canAdjustNoise);
+  ui->nBandwidthSpin->setEnabled(canAdjustNoise);
 
   ui->resetAllButton->setEnabled(snRunning || nRunning);
 
@@ -197,6 +243,8 @@ SNRTool::applyConfig()
   ui->tauSpinBox->setTimeValue(SCAST(qreal, m_panelConfig->tau));
   ui->tauSpinBox->setBestUnits(true);
 
+  ui->normalizeCheck->setChecked(m_panelConfig->normalize);
+
   refreshUi();
 }
 bool
@@ -221,6 +269,13 @@ SNRTool::setState(int, Suscan::Analyzer *analyzer)
 
   m_signalNoiseProcessor->setAnalyzer(analyzer);
   m_noiseProcessor->setAnalyzer(analyzer);
+
+  if (analyzer != nullptr) {
+    auto windowSize = m_mediator->getAnalyzerParams()->windowSize;
+    m_signalNoiseProcessor->setFFTSizeHint(windowSize);
+    m_noiseProcessor->setFFTSizeHint(windowSize);
+    applySpectrumState();
+  }
 
   refreshUi();
 }
@@ -533,6 +588,23 @@ SNRTool::cancelNoiseProbe()
   m_noiseProcessor->cancel();
 }
 
+void
+SNRTool::applySpectrumState()
+{
+  if (m_analyzer != nullptr) {
+    qreal fc = SCAST(qreal, m_spectrum->getCenterFreq());
+    qreal fs = SCAST(qreal, m_analyzer->getSampleRate());
+
+    ui->snFrequencySpin->setMinimum(fc - .5 * fs);
+    ui->snFrequencySpin->setMaximum(fc + .5 * fs);
+
+    ui->nFrequencySpin->setMinimum(fc - .5 * fs);
+    ui->nFrequencySpin->setMaximum(fc + .5 * fs);
+  }
+
+  onNoiseAdjust();
+  onSignalNoiseAdjust();
+}
 
 ////////////////////////////// Slots //////////////////////////////////////////
 void
@@ -572,8 +644,18 @@ SNRTool::onNoiseCancel()
 }
 
 void
-SNRTool::onSignalNoiseStateChanged(int, QString const &desc)
+SNRTool::onSignalNoiseStateChanged(int state, QString const &desc)
 {
+  if (state > POWER_PROCESSOR_CONFIGURING) {
+    bool block;
+
+    block = ui->snBandwidthSpin->blockSignals(true);
+    ui->snBandwidthSpin->setMinimum(m_signalNoiseProcessor->getMinBandwidth());
+    ui->snBandwidthSpin->setMaximum(m_signalNoiseProcessor->getMaxBandwidth());
+    ui->snBandwidthSpin->setValue(m_signalNoiseProcessor->getTrueBandwidth());
+    ui->snBandwidthSpin->blockSignals(block);
+  }
+
   ui->snStateLabel->setText(desc);
   refreshSignalNoiseNamedChannel();
   refreshUi();
@@ -590,8 +672,18 @@ SNRTool::onSignalNoiseMeasurement(qreal reading)
 }
 
 void
-SNRTool::onNoiseStateChanged(int, QString const &desc)
+SNRTool::onNoiseStateChanged(int state, QString const &desc)
 {
+  if (state > POWER_PROCESSOR_CONFIGURING) {
+    bool block;
+
+    block = ui->nBandwidthSpin->blockSignals(true);
+    ui->nBandwidthSpin->setMinimum(m_noiseProcessor->getMinBandwidth());
+    ui->nBandwidthSpin->setMaximum(m_noiseProcessor->getMaxBandwidth());
+    ui->nBandwidthSpin->setValue(m_noiseProcessor->getTrueBandwidth());
+    ui->nBandwidthSpin->blockSignals(block);
+  }
+
   ui->nStateLabel->setText(desc);
   refreshNoiseNamedChannel();
   refreshUi();
@@ -610,6 +702,39 @@ SNRTool::onNoiseMeasurement(qreal reading)
 void
 SNRTool::onTauChanged(qreal time, qreal)
 {
+  m_panelConfig->tau = SU_ASFLOAT(time);
+
   m_signalNoiseProcessor->setTau(time);
   m_noiseProcessor->setTau(time);
+}
+
+void
+SNRTool::onSignalNoiseAdjust()
+{
+  if (m_signalNoiseProcessor->state() >= POWER_PROCESSOR_CONFIGURING) {
+    m_signalNoiseProcessor->setBandwidth(ui->snBandwidthSpin->value());
+    m_signalNoiseProcessor->setFrequency(ui->snFrequencySpin->value());
+    refreshSignalNoiseNamedChannel();
+  }
+}
+void
+SNRTool::onNoiseAdjust()
+{
+  if (m_noiseProcessor->state() >= POWER_PROCESSOR_CONFIGURING) {
+    m_noiseProcessor->setBandwidth(ui->nBandwidthSpin->value());
+    m_noiseProcessor->setFrequency(ui->nFrequencySpin->value());
+    refreshNoiseNamedChannel();
+  }
+}
+
+void
+SNRTool::onSpectrumFrequencyChanged(qint64)
+{
+  applySpectrumState();
+}
+
+void
+SNRTool::onConfigChanged()
+{
+  m_panelConfig->normalize = ui->normalizeCheck->isChecked();
 }

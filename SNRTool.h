@@ -39,6 +39,7 @@ namespace SigDigger {
   public:
     float tau = 1;
     bool collapsed = false;
+    bool normalize = true;
 
     // Overriden methods
     void deserialize(Suscan::Object const &conf) override;
@@ -96,6 +97,7 @@ namespace SigDigger {
     void refreshSignalNoiseNamedChannel();
     void refreshNoiseNamedChannel();
     void refreshNamedChannels();
+    void applySpectrumState();
 
   public:
     explicit SNRTool(SNRToolFactory *, UIMediator *, QWidget *parent = nullptr);
@@ -114,9 +116,12 @@ namespace SigDigger {
     void setProfile(Suscan::Source::Config &) override;
 
   public slots:
+    void onSpectrumFrequencyChanged(qint64 freq);
+
     void onSignalNoiseCont();
     void onSignalNoiseSingle();
     void onSignalNoiseCancel();
+    void onSignalNoiseAdjust();
 
     void onSignalNoiseStateChanged(int, QString const &);
     void onSignalNoiseMeasurement(qreal);
@@ -124,11 +129,13 @@ namespace SigDigger {
     void onNoiseCont();
     void onNoiseSingle();
     void onNoiseCancel();
+    void onNoiseAdjust();
 
     void onNoiseStateChanged(int, QString const &);
     void onNoiseMeasurement(qreal);
 
     void onTauChanged(qreal, qreal);
+    void onConfigChanged();
 
   private:
     Ui::SNRTool *ui;

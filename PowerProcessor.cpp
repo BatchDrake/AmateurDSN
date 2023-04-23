@@ -158,6 +158,7 @@ PowerProcessor::configureInspector()
     m_trueFeedback    = samples / m_equivSampleRate;
     m_alpha           = SCAST(qreal, SU_SPLPF_ALPHA(SU_ASFLOAT(m_desiredTau / m_trueFeedback)));
     m_trueTau         = m_desiredTau;
+    m_rawSampleCount  = 0;
   }
 
   m_inspIntSamples = samples;
@@ -264,6 +265,12 @@ PowerProcessor::getMaxBandwidth() const
 }
 
 qreal
+PowerProcessor::getMinBandwidth() const
+{
+  return m_chanRBW;
+}
+
+qreal
 PowerProcessor::getTrueBandwidth() const
 {
   return m_trueBandwidth;
@@ -296,8 +303,9 @@ void
 PowerProcessor::setFrequency(qreal fc)
 {
   m_desiredFrequency = fc;
-  if (m_state > POWER_PROCESSOR_OPENING)
+  if (m_state > POWER_PROCESSOR_OPENING) {
     m_analyzer->setInspectorFreq(m_inspHandle, m_desiredFrequency - m_analyzer->getFrequency());
+  }
 }
 
 unsigned
@@ -352,8 +360,6 @@ void
 PowerProcessor::onInspectorMessage(Suscan::InspectorMessage const &msg)
 {
   bool configuring = m_state == POWER_PROCESSOR_CONFIGURING;
-
-  printf("Msg! %x to %d\n", msg.getKind(), msg.getInspectorId());
 
   if (configuring && msg.getInspectorId() == m_inspId) {
     // This refers to us!
@@ -439,6 +445,8 @@ PowerProcessor::onInspectorSamples(Suscan::SamplesMessage const &msg)
           SU_SPLPF_FEED(lastMeasurement, power, m_alpha);
 
         emit measurement(lastMeasurement);
+
+        ++sampCount;
       }
 
       m_rawSampleCount  = sampCount;
