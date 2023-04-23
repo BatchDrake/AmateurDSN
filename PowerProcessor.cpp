@@ -314,6 +314,12 @@ PowerProcessor::getDecimation() const
   return m_decimation;
 }
 
+unsigned
+PowerProcessor::getIntSamples() const
+{
+  return m_inspIntSamples;
+}
+
 qreal
 PowerProcessor::getTrueTau() const
 {
@@ -322,6 +328,16 @@ PowerProcessor::getTrueTau() const
   else
     return m_desiredTau;
 }
+
+qreal
+PowerProcessor::getEquivFs() const
+{
+  if (m_state > POWER_PROCESSOR_OPENING)
+    return m_equivSampleRate;
+  else
+    return 0;
+}
+
 
 bool
 PowerProcessor::oneShot(SUFREQ fc, SUFLOAT bw)
@@ -381,7 +397,6 @@ PowerProcessor::onInspectorMessage(Suscan::InspectorMessage const &msg)
 
               if (m_oneShot) {
                 this->setState(POWER_PROCESSOR_MEASURING, "Measuring power...");
-                printf("Setting rate done, integrate samples is %d\n", m_inspIntSamples);
               } else {
                 this->setState(POWER_PROCESSOR_STREAMING, "Channel opened");
               }

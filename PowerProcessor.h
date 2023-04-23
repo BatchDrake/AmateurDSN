@@ -111,7 +111,9 @@ namespace SigDigger {
     qreal getTrueBandwidth() const;
     qreal getTrueFeedbackInterval() const;
     qreal getTrueTau() const;
+    qreal getEquivFs() const;
     unsigned getDecimation() const;
+    unsigned getIntSamples() const;
 
     bool  oneShot(SUFREQ, SUFLOAT);
     bool  startStreaming(SUFREQ, SUFLOAT);
