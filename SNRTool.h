@@ -21,16 +21,23 @@
 
 #include <SNRToolFactory.h>
 #include <QWidget>
+#include <WFHelpers.h>
 
 namespace Ui {
   class SNRTool;
 }
 
-namespace SigDigger{
+namespace Suscan {
   class AnalyzerRequestTracker;
+  class AnalyzerRequest;
+}
 
+namespace SigDigger {
+  class PowerProcessor;
+  class MainSpectrum;
   class SNRToolConfig : public Suscan::Serializable {
   public:
+    float tau = 1;
     bool collapsed = false;
 
     // Overriden methods
@@ -42,17 +49,25 @@ namespace SigDigger{
   {
     Q_OBJECT
 
+    Suscan::Analyzer *m_analyzer = nullptr;
+    MainSpectrum     *m_spectrum = nullptr;
+
     // SNR state
     bool m_haveSignalNoise = false;
     bool m_haveNoise = false;
-    AnalyzerRequestTracker *m_signalNoiseTracker = nullptr;
-    AnalyzerRequestTracker *m_noiseTracker = nullptr;
+    qreal m_currentSignalNoise        = -1;
+    qreal m_currentNoise              = -1;
+    qreal m_currentSignalNoiseDensity = -1;
+    qreal m_currentNoiseDensity       = -1;
 
+    NamedChannelSetIterator m_signalNoiseNamChan;
+    bool m_haveSignalNoiseNamChan = false;
 
-    qreal m_currentSignalNoiseAlpha = 1;
-    qreal m_currentNoiseAlpha       = 1;
-    qreal m_currentSignalNoise      = -1;
-    qreal m_currentNoise            = -1;
+    NamedChannelSetIterator m_noiseNamChan;
+    bool m_haveNoiseNamChan = false;
+
+    PowerProcessor *m_signalNoiseProcessor = nullptr;
+    PowerProcessor *m_noiseProcessor = nullptr;
 
     SNRToolConfig *m_panelConfig = nullptr;
 
@@ -75,6 +90,12 @@ namespace SigDigger{
     void cancelNoiseProbe();
 
     void refreshUi();
+    void connectAll();
+    void refreshMeasurements();
+    bool isFrozen() const;
+    void refreshSignalNoiseNamedChannel();
+    void refreshNoiseNamedChannel();
+    void refreshNamedChannels();
 
   public:
     explicit SNRTool(SNRToolFactory *, UIMediator *, QWidget *parent = nullptr);
@@ -91,6 +112,23 @@ namespace SigDigger{
     void setColorConfig(ColorConfig const &) override;
     void setTimeStamp(struct timeval const &) override;
     void setProfile(Suscan::Source::Config &) override;
+
+  public slots:
+    void onSignalNoiseCont();
+    void onSignalNoiseSingle();
+    void onSignalNoiseCancel();
+
+    void onSignalNoiseStateChanged(int, QString const &);
+    void onSignalNoiseMeasurement(qreal);
+
+    void onNoiseCont();
+    void onNoiseSingle();
+    void onNoiseCancel();
+
+    void onNoiseStateChanged(int, QString const &);
+    void onNoiseMeasurement(qreal);
+
+    void onTauChanged(qreal, qreal);
 
   private:
     Ui::SNRTool *ui;

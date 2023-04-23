@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>325</width>
+    <width>327</width>
     <height>455</height>
    </rect>
   </property>
@@ -61,7 +61,7 @@
        </widget>
       </item>
       <item row="1" column="1" colspan="2">
-       <widget class="FrequencySpinBox" name="frequencySpinBox_3"/>
+       <widget class="FrequencySpinBox" name="snFrequencySpin"/>
       </item>
       <item row="2" column="0">
        <widget class="QLabel" name="label_6">
@@ -77,7 +77,7 @@
        </widget>
       </item>
       <item row="2" column="1" colspan="2">
-       <widget class="FrequencySpinBox" name="frequencySpinBox_4"/>
+       <widget class="FrequencySpinBox" name="snBandwidthSpin"/>
       </item>
       <item row="3" column="0" colspan="3">
        <widget class="QFrame" name="frame_2">
@@ -104,16 +104,16 @@
           <number>3</number>
          </property>
          <item row="0" column="2">
-          <widget class="QPushButton" name="pushButton_4">
+          <widget class="QPushButton" name="snResetButton">
            <property name="text">
             <string>&amp;Reset</string>
            </property>
           </widget>
          </item>
          <item row="0" column="0">
-          <widget class="QPushButton" name="pushButton_3">
+          <widget class="QPushButton" name="snContButton">
            <property name="text">
-            <string>&amp;Hold</string>
+            <string>&amp;Continuous</string>
            </property>
            <property name="checkable">
             <bool>true</bool>
@@ -121,7 +121,7 @@
           </widget>
          </item>
          <item row="0" column="1">
-          <widget class="QPushButton" name="pushButton_8">
+          <widget class="QPushButton" name="snSingleButton">
            <property name="text">
             <string>&amp;Single shot</string>
            </property>
@@ -139,14 +139,14 @@
          </sizepolicy>
         </property>
         <property name="text">
-         <string>Sample rate</string>
+         <string>State</string>
         </property>
        </widget>
       </item>
       <item row="0" column="1" colspan="2">
-       <widget class="QLabel" name="label_8">
+       <widget class="QLabel" name="snStateLabel">
         <property name="text">
-         <string>N/A</string>
+         <string>Idle</string>
         </property>
        </widget>
       </item>
@@ -170,12 +170,20 @@
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="QLabel" name="label_17">
+       <widget class="QLabel" name="spnLabel">
+        <property name="font">
+         <font>
+          <family>Monospace</family>
+         </font>
+        </property>
         <property name="frameShape">
          <enum>QFrame::StyledPanel</enum>
         </property>
         <property name="text">
          <string>N/A adu²</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
         </property>
         <property name="textInteractionFlags">
          <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard</set>
@@ -183,12 +191,20 @@
        </widget>
       </item>
       <item row="0" column="2">
-       <widget class="QLabel" name="label_18">
+       <widget class="QLabel" name="spnDbLabel">
+        <property name="font">
+         <font>
+          <family>Monospace</family>
+         </font>
+        </property>
         <property name="frameShape">
          <enum>QFrame::StyledPanel</enum>
         </property>
         <property name="text">
          <string>N/A dBFS</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
         </property>
         <property name="textInteractionFlags">
          <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard</set>
@@ -203,12 +219,20 @@
        </widget>
       </item>
       <item row="1" column="1">
-       <widget class="QLabel" name="label_19">
+       <widget class="QLabel" name="nLabel">
+        <property name="font">
+         <font>
+          <family>Monospace</family>
+         </font>
+        </property>
         <property name="frameShape">
          <enum>QFrame::StyledPanel</enum>
         </property>
         <property name="text">
          <string>N/A adu²</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
         </property>
         <property name="textInteractionFlags">
          <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard</set>
@@ -216,12 +240,20 @@
        </widget>
       </item>
       <item row="1" column="2">
-       <widget class="QLabel" name="label_20">
+       <widget class="QLabel" name="nDbLabel">
+        <property name="font">
+         <font>
+          <family>Monospace</family>
+         </font>
+        </property>
         <property name="frameShape">
          <enum>QFrame::StyledPanel</enum>
         </property>
         <property name="text">
          <string>N/A dBFS</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
         </property>
         <property name="textInteractionFlags">
          <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard</set>
@@ -237,17 +269,46 @@
          </sizepolicy>
         </property>
         <property name="text">
-         <string>S-N</string>
+         <string>(S+N)/N</string>
         </property>
        </widget>
       </item>
       <item row="2" column="1">
-       <widget class="QLabel" name="label_11">
+       <widget class="QLabel" name="snnrLabel">
+        <property name="font">
+         <font>
+          <family>Monospace</family>
+         </font>
+        </property>
         <property name="frameShape">
          <enum>QFrame::StyledPanel</enum>
         </property>
         <property name="text">
          <string>N/A adu²</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+        <property name="textInteractionFlags">
+         <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard</set>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="2">
+       <widget class="QLabel" name="snnrDbLabel">
+        <property name="font">
+         <font>
+          <family>Monospace</family>
+         </font>
+        </property>
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <property name="text">
+         <string>N/A adu²</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
         </property>
         <property name="textInteractionFlags">
          <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard</set>
@@ -268,12 +329,20 @@
        </widget>
       </item>
       <item row="3" column="1">
-       <widget class="QLabel" name="label_13">
+       <widget class="QLabel" name="snrLabel">
+        <property name="font">
+         <font>
+          <family>Monospace</family>
+         </font>
+        </property>
         <property name="frameShape">
          <enum>QFrame::StyledPanel</enum>
         </property>
         <property name="text">
          <string>N/A</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
         </property>
         <property name="textInteractionFlags">
          <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard</set>
@@ -281,12 +350,20 @@
        </widget>
       </item>
       <item row="3" column="2">
-       <widget class="QLabel" name="label_12">
+       <widget class="QLabel" name="snrDbLabel">
+        <property name="font">
+         <font>
+          <family>Monospace</family>
+         </font>
+        </property>
         <property name="frameShape">
          <enum>QFrame::StyledPanel</enum>
         </property>
         <property name="text">
          <string>N/A dB</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
         </property>
         <property name="textInteractionFlags">
          <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard</set>
@@ -307,22 +384,12 @@
        </widget>
       </item>
       <item row="4" column="1" colspan="2">
-       <widget class="TimeSpinBox" name="timeSpinBox">
+       <widget class="TimeSpinBox" name="tauSpinBox">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
-        </property>
-       </widget>
-      </item>
-      <item row="5" column="0" colspan="3">
-       <widget class="QCheckBox" name="checkBox">
-        <property name="text">
-         <string>&amp;Normalize by channel bandwidth</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
         </property>
        </widget>
       </item>
@@ -351,7 +418,7 @@
           <number>3</number>
          </property>
          <item row="0" column="0">
-          <widget class="QPushButton" name="pushButton_5">
+          <widget class="QPushButton" name="freezeButton">
            <property name="text">
             <string>&amp;Freeze</string>
            </property>
@@ -361,20 +428,30 @@
           </widget>
          </item>
          <item row="0" column="2">
-          <widget class="QPushButton" name="pushButton_6">
+          <widget class="QPushButton" name="resetAllButton">
            <property name="text">
             <string>&amp;Reset all</string>
            </property>
           </widget>
          </item>
          <item row="0" column="1">
-          <widget class="QPushButton" name="pushButton_7">
+          <widget class="QPushButton" name="copyButton">
            <property name="text">
             <string>&amp;Copy to clipboard</string>
            </property>
           </widget>
          </item>
         </layout>
+       </widget>
+      </item>
+      <item row="5" column="0" colspan="3">
+       <widget class="QCheckBox" name="normalizeCheck">
+        <property name="text">
+         <string>&amp;Normalize by channel bandwidth</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
        </widget>
       </item>
      </layout>
@@ -415,7 +492,7 @@
        </widget>
       </item>
       <item row="1" column="1" colspan="2">
-       <widget class="FrequencySpinBox" name="frequencySpinBox"/>
+       <widget class="FrequencySpinBox" name="nFrequencySpin"/>
       </item>
       <item row="2" column="0">
        <widget class="QLabel" name="label_2">
@@ -431,7 +508,7 @@
        </widget>
       </item>
       <item row="2" column="1" colspan="2">
-       <widget class="FrequencySpinBox" name="frequencySpinBox_2"/>
+       <widget class="FrequencySpinBox" name="nBandwidthSpin"/>
       </item>
       <item row="3" column="0" colspan="3">
        <widget class="QFrame" name="frame">
@@ -458,16 +535,16 @@
           <number>3</number>
          </property>
          <item row="0" column="2">
-          <widget class="QPushButton" name="pushButton_2">
+          <widget class="QPushButton" name="nResetButton">
            <property name="text">
             <string>&amp;Reset</string>
            </property>
           </widget>
          </item>
          <item row="0" column="0">
-          <widget class="QPushButton" name="pushButton">
+          <widget class="QPushButton" name="nContButton">
            <property name="text">
-            <string>&amp;Hold</string>
+            <string>&amp;Continuous</string>
            </property>
            <property name="checkable">
             <bool>true</bool>
@@ -475,7 +552,7 @@
           </widget>
          </item>
          <item row="0" column="1">
-          <widget class="QPushButton" name="pushButton_9">
+          <widget class="QPushButton" name="nSingleButton">
            <property name="text">
             <string>&amp;Single shot</string>
            </property>
@@ -493,14 +570,14 @@
          </sizepolicy>
         </property>
         <property name="text">
-         <string>Sample rate</string>
+         <string>State</string>
         </property>
        </widget>
       </item>
       <item row="0" column="1" colspan="2">
-       <widget class="QLabel" name="label_4">
+       <widget class="QLabel" name="nStateLabel">
         <property name="text">
-         <string>N/A</string>
+         <string>Idle</string>
         </property>
        </widget>
       </item>
