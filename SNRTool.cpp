@@ -455,6 +455,7 @@ SNRTool::refreshMeasurements()
   qreal signalNoise;
   qreal noise;
   QString units;
+  qreal ratio;
   const char *dbUnits;
 
   if (ui->normalizeCheck->isChecked()) {
@@ -462,11 +463,13 @@ SNRTool::refreshMeasurements()
     noise       = m_currentNoiseDensity;
     units       = "pu/Hz";
     dbUnits     = "dBpu/Hz";
+    ratio       = m_widthRatio;
   } else {
     signalNoise = m_currentSignalNoise;
     noise       = m_currentNoise;
     units       = "pu";
     dbUnits     = "dBpu";
+    ratio       = 1;
   }
 
   if (signalNoise <= 0) {
@@ -499,11 +502,11 @@ SNRTool::refreshMeasurements()
     ui->snnrLabel->setText(
           SuWidgetsHelpers::formatScientific(snnr));
     ui->snnrDbLabel->setText(
-          QString::asprintf("%+6.3f %s",
-            SU_POWER_DB_RAW(SU_ASFLOAT(snnr)), dbUnits));
+          QString::asprintf("%+6.3f dB",
+            SU_POWER_DB_RAW(SU_ASFLOAT(snnr))));
   }
 
-  snr = (signalNoise - noise) / noise;
+  snr = (signalNoise - noise * ratio) / noise;
   if (snr <= 0) {
     ui->snrLabel->setText("N/A");
     ui->snrDbLabel->setText("N/A");
@@ -511,8 +514,8 @@ SNRTool::refreshMeasurements()
     ui->snrLabel->setText(
           SuWidgetsHelpers::formatScientific(snr));
     ui->snrDbLabel->setText(
-          QString::asprintf("%+6.3f %s",
-            SU_POWER_DB_RAW(SU_ASFLOAT(snr)), dbUnits));
+          QString::asprintf("%+6.3f dB",
+            SU_POWER_DB_RAW(SU_ASFLOAT(snr))));
   }
 
   m_clipBoardText =
@@ -688,6 +691,7 @@ SNRTool::onSignalNoiseMeasurement(qreal reading)
   if (!this->isFrozen()) {
     m_currentSignalNoise = reading;
     m_currentSignalNoiseDensity = reading / m_signalNoiseProcessor->getTrueBandwidth();
+    m_widthRatio = m_signalNoiseProcessor->getTrueBandwidth() / m_noiseProcessor->getTrueBandwidth();
     this->refreshMeasurements();
   }
 }
@@ -716,6 +720,7 @@ SNRTool::onNoiseMeasurement(qreal reading)
   if (!this->isFrozen()) {
     m_currentNoise = reading;
     m_currentNoiseDensity = reading / m_noiseProcessor->getTrueBandwidth();
+    m_widthRatio = m_signalNoiseProcessor->getTrueBandwidth() / m_noiseProcessor->getTrueBandwidth();
     this->refreshMeasurements();
   }
 }

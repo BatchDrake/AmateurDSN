@@ -60,6 +60,7 @@ namespace SigDigger {
     qreal m_currentNoise              = -1;
     qreal m_currentSignalNoiseDensity = -1;
     qreal m_currentNoiseDensity       = -1;
+    qreal m_widthRatio                = 1;
 
     NamedChannelSetIterator m_signalNoiseNamChan;
     bool m_haveSignalNoiseNamChan = false;
