@@ -24,7 +24,7 @@ isEmpty(SUWIDGETS_PREFIX) {
 isEmpty(SIGDIGGER_PREFIX) {
   SIGDIGGER_INSTALL_HEADERS=$$[QT_INSTALL_HEADERS]/SigDigger
 } else {
-  SIGDIGGER_INSTALL_HEADERS=$$SIGDIGGER_PREFIX/include
+  SIGDIGGER_INSTALL_HEADERS=$$SIGDIGGER_PREFIX/include/SigDigger
 }
 
 # You can make your code fail to compile if it uses deprecated APIs.
