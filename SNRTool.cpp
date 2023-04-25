@@ -252,6 +252,9 @@ SNRTool::applyConfig()
 
   ui->normalizeCheck->setChecked(m_panelConfig->normalize);
 
+  m_signalNoiseProcessor->setTau(m_panelConfig->tau);
+  m_noiseProcessor->setTau(m_panelConfig->tau);
+
   refreshUi();
 }
 bool

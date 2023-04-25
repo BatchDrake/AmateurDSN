@@ -61,7 +61,7 @@
        </widget>
       </item>
       <item row="1" column="1" colspan="2">
-       <widget class="FrequencySpinBox" name="snFrequencySpin"/>
+       <widget class="FrequencySpinBox" name="snFrequencySpin" native="true"/>
       </item>
       <item row="2" column="0">
        <widget class="QLabel" name="label_6">
@@ -77,7 +77,7 @@
        </widget>
       </item>
       <item row="2" column="1" colspan="2">
-       <widget class="FrequencySpinBox" name="snBandwidthSpin"/>
+       <widget class="FrequencySpinBox" name="snBandwidthSpin" native="true"/>
       </item>
       <item row="3" column="0" colspan="3">
        <widget class="QFrame" name="frame_2">
@@ -116,7 +116,7 @@
             <string>&amp;Continuous</string>
            </property>
            <property name="checkable">
-            <bool>true</bool>
+            <bool>false</bool>
            </property>
           </widget>
          </item>
@@ -384,7 +384,7 @@
        </widget>
       </item>
       <item row="4" column="1" colspan="2">
-       <widget class="TimeSpinBox" name="tauSpinBox">
+       <widget class="TimeSpinBox" name="tauSpinBox" native="true">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
           <horstretch>0</horstretch>
@@ -492,7 +492,7 @@
        </widget>
       </item>
       <item row="1" column="1" colspan="2">
-       <widget class="FrequencySpinBox" name="nFrequencySpin"/>
+       <widget class="FrequencySpinBox" name="nFrequencySpin" native="true"/>
       </item>
       <item row="2" column="0">
        <widget class="QLabel" name="label_2">
@@ -508,7 +508,7 @@
        </widget>
       </item>
       <item row="2" column="1" colspan="2">
-       <widget class="FrequencySpinBox" name="nBandwidthSpin"/>
+       <widget class="FrequencySpinBox" name="nBandwidthSpin" native="true"/>
       </item>
       <item row="3" column="0" colspan="3">
        <widget class="QFrame" name="frame">
@@ -547,7 +547,7 @@
             <string>&amp;Continuous</string>
            </property>
            <property name="checkable">
-            <bool>true</bool>
+            <bool>false</bool>
            </property>
           </widget>
          </item>
