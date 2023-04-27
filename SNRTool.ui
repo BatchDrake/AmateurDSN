@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>327</width>
-    <height>455</height>
+    <height>545</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -61,7 +61,7 @@
        </widget>
       </item>
       <item row="1" column="1" colspan="2">
-       <widget class="FrequencySpinBox" name="snFrequencySpin" native="true"/>
+       <widget class="FrequencySpinBox" name="snFrequencySpin"/>
       </item>
       <item row="2" column="0">
        <widget class="QLabel" name="label_6">
@@ -77,7 +77,7 @@
        </widget>
       </item>
       <item row="2" column="1" colspan="2">
-       <widget class="FrequencySpinBox" name="snBandwidthSpin" native="true"/>
+       <widget class="FrequencySpinBox" name="snBandwidthSpin"/>
       </item>
       <item row="3" column="0" colspan="3">
        <widget class="QFrame" name="frame_2">
@@ -147,6 +147,9 @@
        <widget class="QLabel" name="snStateLabel">
         <property name="text">
          <string>Idle</string>
+        </property>
+        <property name="wordWrap">
+         <bool>true</bool>
         </property>
        </widget>
       </item>
@@ -384,7 +387,7 @@
        </widget>
       </item>
       <item row="4" column="1" colspan="2">
-       <widget class="TimeSpinBox" name="tauSpinBox" native="true">
+       <widget class="TimeSpinBox" name="tauSpinBox">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
           <horstretch>0</horstretch>
@@ -492,7 +495,7 @@
        </widget>
       </item>
       <item row="1" column="1" colspan="2">
-       <widget class="FrequencySpinBox" name="nFrequencySpin" native="true"/>
+       <widget class="FrequencySpinBox" name="nFrequencySpin"/>
       </item>
       <item row="2" column="0">
        <widget class="QLabel" name="label_2">
@@ -508,7 +511,7 @@
        </widget>
       </item>
       <item row="2" column="1" colspan="2">
-       <widget class="FrequencySpinBox" name="nBandwidthSpin" native="true"/>
+       <widget class="FrequencySpinBox" name="nBandwidthSpin"/>
       </item>
       <item row="3" column="0" colspan="3">
        <widget class="QFrame" name="frame">
@@ -578,6 +581,9 @@
        <widget class="QLabel" name="nStateLabel">
         <property name="text">
          <string>Idle</string>
+        </property>
+        <property name="wordWrap">
+         <bool>true</bool>
         </property>
        </widget>
       </item>
