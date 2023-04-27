@@ -32,6 +32,8 @@ isEmpty(SIGDIGGER_PREFIX) {
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    ExternalTool.cpp \
+    ExternalToolFactory.cpp \
     ForwarderWidget.cpp \
     PowerProcessor.cpp \
     ProcessForwarder.cpp \
@@ -53,10 +55,13 @@ target.path = $$PLUGIN_DIRECTORY
 !isEmpty(target.path): INSTALLS += target
 
 FORMS += \
+  ExternalTool.ui \
   ForwarderWidget.ui \
   SNRTool.ui
 
 HEADERS += \
+  ExternalTool.h \
+  ExternalToolFactory.h \
   ForwarderWidget.h \
   PowerProcessor.h \
   ProcessForwarder.h \

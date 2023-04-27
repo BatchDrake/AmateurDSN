@@ -1,6 +1,6 @@
 //
-//    Registration.cpp: Register the ZeroMQ forwarder
-//    Copyright (C) 2022 Gonzalo José Carracedo Carballal
+//    SNRToolFactory.h: Make SNR tool widgets
+//    Copyright (C) 2023 Gonzalo José Carracedo Carballal
 //
 //    This program is free software: you can redistribute it and/or modify
 //    it under the terms of the GNU Lesser General Public License as
@@ -16,29 +16,23 @@
 //    License along with this program.  If not, see
 //    <http://www.gnu.org/licenses/>
 //
+#ifndef EXTERNALTOOLFACTORY_H
+#define EXTERNALTOOLFACTORY_H
 
-#include <Suscan/Plugin.h>
-#include <Suscan/Library.h>
-#include <QCoreApplication>
-#include <SNRToolFactory.h>
-#include <ExternalToolFactory.h>
+#include <ToolWidgetFactory.h>
 
-SUSCAN_PLUGIN("AmateurDSN", "AmateurDSN Toolkit");
-SUSCAN_PLUGIN_VERSION(0, 1, 0);
-SUSCAN_PLUGIN_API_VERSION(0, 3, 0);
+namespace SigDigger {
+  class ExternalToolFactory : public ToolWidgetFactory
+  {
+  public:
+    // FeatureFactory overrides
+    const char *name() const override;
 
-bool
-plugin_load(Suscan::Plugin *plugin)
-{
-  Suscan::Singleton *sus = Suscan::Singleton::get_instance();
+    // ToolWidgetFactory overrides
+    ToolWidget *make(UIMediator *) override;
+    std::string getTitle() const override;
 
-  if (!sus->registerToolWidgetFactory(
-        new SigDigger::SNRToolFactory(plugin)))
-    return false;
-
-  if (!sus->registerToolWidgetFactory(
-        new SigDigger::ExternalToolFactory(plugin)))
-    return false;
-
-  return true;
+    ExternalToolFactory(Suscan::Plugin *);
+  };
 }
+#endif // EXTERNALTOOLFACTORY_H

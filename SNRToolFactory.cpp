@@ -25,7 +25,7 @@ using namespace SigDigger;
 const char *
 SNRToolFactory::name() const
 {
-  return "ZeroMQWidget";
+  return "SNRTool";
 }
 
 ToolWidget *
