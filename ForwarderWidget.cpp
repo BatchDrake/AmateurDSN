@@ -48,18 +48,26 @@ ForwarderWidget::~ForwarderWidget()
 void
 ForwarderWidget::refreshUi()
 {
-  ui->openButton->setEnabled(m_forwarder->state() == PROCESS_FORWARDER_IDLE);
-  ui->browseButton->setEnabled(m_forwarder->state() == PROCESS_FORWARDER_IDLE);
-  ui->detachButton->setEnabled(m_forwarder->state() == PROCESS_FORWARDER_RUNNING);
-  ui->terminateButton->setEnabled(m_forwarder->state() != PROCESS_FORWARDER_IDLE);
+  bool haveAnalyzer = m_analyzer != nullptr;
 
-  ui->bandwidthSpin->setEnabled(m_forwarder->state() == PROCESS_FORWARDER_RUNNING);
-  ui->frequencySpin->setEnabled(m_forwarder->state() == PROCESS_FORWARDER_RUNNING);
+  ui->openButton->setEnabled(haveAnalyzer && m_forwarder->state() == PROCESS_FORWARDER_IDLE);
+  ui->browseButton->setEnabled(m_forwarder->state() == PROCESS_FORWARDER_IDLE);
+  ui->detachButton->setEnabled(haveAnalyzer && m_forwarder->state() == PROCESS_FORWARDER_RUNNING);
+  ui->terminateButton->setEnabled(haveAnalyzer && m_forwarder->state() != PROCESS_FORWARDER_IDLE);
+
+  ui->bandwidthSpin->setEnabled(haveAnalyzer && m_forwarder->state() == PROCESS_FORWARDER_RUNNING);
+  ui->frequencySpin->setEnabled(haveAnalyzer && m_forwarder->state() == PROCESS_FORWARDER_RUNNING);
 }
 
 void
 ForwarderWidget::connectAll()
 {
+  connect(
+        m_forwarder,
+        SIGNAL(stateChanged(int,QString)),
+        this,
+        SLOT(onForwarderStateChanged(int,QString)));
+
   connect(
         ui->openButton,
         SIGNAL(clicked(bool)),
@@ -131,10 +139,10 @@ ForwarderWidget::refreshNamedChannel()
   if (m_haveNamChan) {
     qint64 cfFreq  = ui->frequencySpin->value();
     auto chBw      = m_forwarder->getTrueBandwidth();
-    bool fullyOpen = m_forwarder->state() > PROCESS_FORWARDER_RUNNING;
+    bool fullyOpen = m_forwarder->state() == PROCESS_FORWARDER_RUNNING;
 
-    QColor color       = fullyOpen ? QColor("#00ffff") : QColor("#007f7f");
-    QColor markerColor = fullyOpen ? QColor("#00ffff") : QColor("#007f7f");
+    QColor color       = fullyOpen ? QColor("#007f00") : QColor("#003f00");
+    QColor markerColor = fullyOpen ? QColor("#007f00") : QColor("#003f00");
     QString text;
 
 
@@ -223,6 +231,12 @@ ForwarderWidget::setBandwidth(qreal bw)
   ui->bandwidthSpin->blockSignals(block);
 }
 
+void
+ForwarderWidget::setName(QString const &name)
+{
+  ui->groupBox->setTitle(name);
+}
+
 QString
 ForwarderWidget::programPath() const
 {
@@ -240,12 +254,30 @@ void
 ForwarderWidget::onOpen()
 {
   QStringList argList = arguments().split(u' ', Qt::SkipEmptyParts);
+  auto bandwidth  = m_spectrum->getBandwidth();
+  auto loFreq     = m_spectrum->getLoFreq();
+  auto centerFreq = m_spectrum->getCenterFreq();
+  auto freq       = centerFreq + loFreq;
 
-  m_forwarder->run(
+  bool bwBlocked = ui->bandwidthSpin->blockSignals(true);
+  bool fcBlocked = ui->frequencySpin->blockSignals(true);
+
+  ui->bandwidthSpin->setValue(bandwidth);
+  ui->frequencySpin->setValue(freq);
+
+  ui->bandwidthSpin->blockSignals(bwBlocked);
+  ui->frequencySpin->blockSignals(fcBlocked);
+
+  if (!m_forwarder->run(
         programPath(),
         argList,
         ui->frequencySpin->value(),
-        ui->bandwidthSpin->value());
+        ui->bandwidthSpin->value())) {
+    QMessageBox::warning(
+          this,
+          "Command failed",
+          "Cannot open a channel in the current state");
+  }
 }
 
 void

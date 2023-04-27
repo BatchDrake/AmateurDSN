@@ -59,6 +59,8 @@ namespace SigDigger {
     void setFrequency(qreal);
     void setBandwidth(qreal);
 
+    void setName(QString const &);
+
     QString programPath() const;
     QString arguments() const;
 

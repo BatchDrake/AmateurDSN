@@ -150,6 +150,8 @@ ProcessForwarder::setFFTSizeHint(unsigned int fftSize)
 void
 ProcessForwarder::setState(ProcessForwarderState state, QString const &msg)
 {
+  QStringList correctedList;
+
   if (m_state != state) {
     m_state = state;
 
@@ -175,7 +177,19 @@ ProcessForwarder::setState(ProcessForwarderState state, QString const &msg)
         m_process.setProcessChannelMode(QProcess::SeparateChannels);
         m_process.setInputChannelMode(QProcess::ManagedInputChannel);
         m_process.setProgram(m_programPath);
-        m_process.setArguments(m_programArgs);
+
+        for (auto p : m_programArgs) {
+          QString arg = p;
+          arg = arg.replace(
+            "%SAMPLERATE%",
+            QString::number(SCAST(int, m_equivSampleRate)));
+          arg = arg.replace(
+            "%FFTSIZE%",
+            QString::number(SCAST(int, m_fftSize)));
+          correctedList.append(arg);
+        }
+
+        m_process.setArguments(correctedList);
         m_process.start();
 
         break;
@@ -201,7 +215,7 @@ ProcessForwarder::openChannel()
   ch.fLow  = -.5 * m_desiredBandwidth;
   ch.fHigh = +.5 * m_desiredBandwidth;
 
-  if (!m_tracker->requestOpen("power", ch))
+  if (!m_tracker->requestOpen("raw", ch))
     return false;
 
   this->setState(PROCESS_FORWARDER_OPENING, "Opening inspector...");

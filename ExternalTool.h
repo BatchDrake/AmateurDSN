@@ -22,12 +22,14 @@
 #include <ExternalToolFactory.h>
 #include <WFHelpers.h>
 #include <QWidget>
+#include <QVector>
 
 namespace Ui {
   class ExternalTool;
 }
 
 namespace SigDigger {
+  class ForwarderWidget;
   class ExternalToolConfig : public Suscan::Serializable {
   public:
     bool collapsed = false;
@@ -44,6 +46,9 @@ namespace SigDigger {
 
     Suscan::Analyzer *m_analyzer = nullptr;
     ExternalToolConfig *m_panelConfig = nullptr;
+    QVector<ForwarderWidget *> m_forwarderWidgets;
+
+    void addForwarderWidget(QString const &name);
 
   public:
     explicit ExternalTool(ExternalToolFactory *, UIMediator *, QWidget *parent = nullptr);

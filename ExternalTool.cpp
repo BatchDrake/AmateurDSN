@@ -18,6 +18,7 @@
 //
 #include "ExternalTool.h"
 #include "ui_ExternalTool.h"
+#include "ForwarderWidget.h"
 
 using namespace SigDigger;
 
@@ -58,11 +59,24 @@ ExternalTool::ExternalTool(
   m_mediator = mediator;
 
   setProperty("collapsed", m_panelConfig->collapsed);
+
+  for (int i = 0; i < 4; ++i)
+    addForwarderWidget("External tool #" + QString::number(i + 1));
 }
 
 ExternalTool::~ExternalTool()
 {
   delete ui;
+}
+
+void
+ExternalTool::addForwarderWidget(QString const &name)
+{
+  ForwarderWidget *widget = new ForwarderWidget(m_mediator);
+
+  widget->setName(name);
+  ui->contentsLayout->addWidget(widget);
+  m_forwarderWidgets.append(widget);
 }
 
 // Configuration methods
@@ -94,9 +108,10 @@ ExternalTool::event(QEvent *event)
 
 // Overriden methods
 void
-ExternalTool::setState(int, Suscan::Analyzer *)
+ExternalTool::setState(int state, Suscan::Analyzer *analyzer)
 {
-
+  for (auto p : m_forwarderWidgets)
+    p->setState(state, analyzer);
 }
 
 void
