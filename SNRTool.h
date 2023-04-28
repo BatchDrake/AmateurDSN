@@ -40,6 +40,7 @@ namespace SigDigger {
     float tau = 1;
     bool collapsed = false;
     bool normalize = true;
+    float refbw = 1;
 
     // Overriden methods
     void deserialize(Suscan::Object const &conf) override;
@@ -60,7 +61,9 @@ namespace SigDigger {
     qreal m_currentNoise              = -1;
     qreal m_currentSignalNoiseDensity = -1;
     qreal m_currentNoiseDensity       = -1;
-    qreal m_widthRatio                = 1;
+    qreal m_widthRatio                = +1;
+    qreal m_signalNoiseWidth          = +1;
+    qreal m_noiseWidth                = +1;
 
     NamedChannelSetIterator m_signalNoiseNamChan;
     bool m_haveSignalNoiseNamChan = false;

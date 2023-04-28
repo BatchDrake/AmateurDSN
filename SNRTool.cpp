@@ -39,6 +39,7 @@ SNRToolConfig::deserialize(Suscan::Object const &conf)
   LOAD(collapsed);
   LOAD(normalize);
   LOAD(tau);
+  LOAD(refbw);
 }
 
 Suscan::Object &&
@@ -51,6 +52,7 @@ SNRToolConfig::serialize()
   STORE(collapsed);
   STORE(normalize);
   STORE(tau);
+  STORE(refbw);
 
   return persist(obj);
 }
@@ -72,6 +74,12 @@ SNRTool::SNRTool(
   m_spectrum             = mediator->getMainSpectrum();
 
   setProperty("collapsed", m_panelConfig->collapsed);
+
+  ui->refBwSpin->setMinimum(1e-6);
+  ui->refBwSpin->setMaximum(1e6);
+  ui->refBwSpin->setExtraDecimals(6);
+  ui->refBwSpin->setSubMultiplesAllowed(true);
+  ui->refBwSpin->setAutoUnitMultiplierEnabled(true);
 
   refreshUi();
   refreshMeasurements();
@@ -201,6 +209,12 @@ SNRTool::connectAll()
         SLOT(onConfigChanged()));
 
   connect(
+        ui->refBwSpin,
+        SIGNAL(valueChanged(double)),
+        this,
+        SLOT(onConfigChanged()));
+
+  connect(
         ui->copyButton,
         SIGNAL(clicked(bool)),
         this,
@@ -250,6 +264,7 @@ SNRTool::applyConfig()
   ui->tauSpinBox->setTimeValue(SCAST(qreal, m_panelConfig->tau));
   ui->tauSpinBox->setBestUnits(true);
 
+  ui->refBwSpin->setValue(m_panelConfig->refbw);
   ui->normalizeCheck->setChecked(m_panelConfig->normalize);
 
   m_signalNoiseProcessor->setTau(m_panelConfig->tau);
@@ -455,6 +470,7 @@ void
 SNRTool::refreshMeasurements()
 {
   qreal snnr, snr;
+  qreal esnnr, esnr;
   qreal signalNoise;
   qreal noise;
   QString units;
@@ -521,6 +537,31 @@ SNRTool::refreshMeasurements()
             SU_POWER_DB_RAW(SU_ASFLOAT(snr))));
   }
 
+  // The eSNR (not the eSNNR) is the easiest one to compute
+  esnr = snr * m_signalNoiseWidth / m_panelConfig->refbw;
+  if (esnr <= 0) {
+    ui->esnrLabel->setText("N/A");
+    ui->esnrDbLabel->setText("N/A");
+  } else {
+    ui->esnrLabel->setText(
+          SuWidgetsHelpers::formatScientific(esnr));
+    ui->esnrDbLabel->setText(
+          QString::asprintf("%+6.3f dB",
+            SU_POWER_DB_RAW(SU_ASFLOAT(esnr))));
+  }
+
+  esnnr = esnr + 1;
+  if (esnnr <= 0) {
+    ui->esnnrLabel->setText("N/A");
+    ui->esnnrDbLabel->setText("N/A");
+  } else {
+    ui->esnnrLabel->setText(
+          SuWidgetsHelpers::formatScientific(esnnr));
+    ui->esnnrDbLabel->setText(
+          QString::asprintf("%+6.3f dB",
+            SU_POWER_DB_RAW(SU_ASFLOAT(esnnr))));
+  }
+
   m_clipBoardText =
         "S+N:  " + ui->spnLabel->text() + " (" + ui->spnDbLabel->text()
       + ") in "
@@ -533,7 +574,13 @@ SNRTool::refreshMeasurements()
       + "SNNR: " + ui->snnrLabel->text() + " (" + ui->snnrDbLabel->text()
       + ")\n"
       + "SNR:  " + ui->snrLabel->text() + " (" + ui->snrDbLabel->text()
-      + ")\n";
+      + ")\n"
+      + "eSNNR: " + ui->esnnrLabel->text() + " (" + ui->esnnrDbLabel->text()
+      + ") in   " + SuWidgetsHelpers::formatQuantity(ui->refBwSpin->value(), 6, "Hz")
+      + "\n"
+      + "eSNR:  " + ui->esnrLabel->text() + " (" + ui->esnrDbLabel->text()
+      + ") in   " + SuWidgetsHelpers::formatQuantity(ui->refBwSpin->value(), 6, "Hz")
+      + "\n";
 }
 
 void
@@ -694,7 +741,9 @@ SNRTool::onSignalNoiseMeasurement(qreal reading)
   if (!this->isFrozen()) {
     m_currentSignalNoise = reading;
     m_currentSignalNoiseDensity = reading / m_signalNoiseProcessor->getTrueBandwidth();
-    m_widthRatio = m_signalNoiseProcessor->getTrueBandwidth() / m_noiseProcessor->getTrueBandwidth();
+    m_signalNoiseWidth = m_signalNoiseProcessor->getTrueBandwidth();
+    m_noiseWidth       = m_noiseProcessor->getTrueBandwidth();
+    m_widthRatio       = m_signalNoiseWidth / m_noiseWidth;
     this->refreshMeasurements();
   }
 }
@@ -723,7 +772,9 @@ SNRTool::onNoiseMeasurement(qreal reading)
   if (!this->isFrozen()) {
     m_currentNoise = reading;
     m_currentNoiseDensity = reading / m_noiseProcessor->getTrueBandwidth();
-    m_widthRatio = m_signalNoiseProcessor->getTrueBandwidth() / m_noiseProcessor->getTrueBandwidth();
+    m_signalNoiseWidth = m_signalNoiseProcessor->getTrueBandwidth();
+    m_noiseWidth       = m_noiseProcessor->getTrueBandwidth();
+    m_widthRatio       = m_signalNoiseWidth / m_noiseWidth;
     this->refreshMeasurements();
   }
 }
@@ -766,6 +817,9 @@ void
 SNRTool::onConfigChanged()
 {
   m_panelConfig->normalize = ui->normalizeCheck->isChecked();
+  m_panelConfig->refbw     = ui->refBwSpin->value();
+
+  refreshMeasurements();
 }
 
 void
