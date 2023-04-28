@@ -32,6 +32,17 @@ namespace SigDigger {
   class UIMediator;
   class ProcessForwarder;
 
+  class ForwarderWidgetConfig : public Suscan::Serializable {
+  public:
+    std::string title;
+    std::string programPath;
+    std::string arguments;
+
+    // Overriden methods
+    void deserialize(Suscan::Object const &conf) override;
+    Suscan::Object &&serialize() override;
+  };
+
   class ForwarderWidget : public QWidget
   {
     Q_OBJECT
@@ -43,6 +54,8 @@ namespace SigDigger {
 
     NamedChannelSetIterator m_namChan;
     bool              m_haveNamChan = false;
+
+    ForwarderWidgetConfig m_config;
 
     void refreshUi();
     void connectAll();
@@ -64,6 +77,12 @@ namespace SigDigger {
     QString programPath() const;
     QString arguments() const;
 
+    void setConfig(ForwarderWidgetConfig const &);
+    ForwarderWidgetConfig const &getConfig() const;
+
+  signals:
+    void configChanged();
+
   public slots:
     void onOpen();
     void onTerminate();
@@ -75,6 +94,7 @@ namespace SigDigger {
     void onAdjustFrequency();
 
     void onForwarderStateChanged(int, QString const &);
+    void onConfigChanged();
 
   private:
     Ui::ForwarderWidget *ui;

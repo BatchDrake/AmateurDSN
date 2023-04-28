@@ -23,15 +23,17 @@
 #include <WFHelpers.h>
 #include <QWidget>
 #include <QVector>
+#include <vector>
+#include <ForwarderWidget.h>
 
 namespace Ui {
   class ExternalTool;
 }
 
 namespace SigDigger {
-  class ForwarderWidget;
   class ExternalToolConfig : public Suscan::Serializable {
   public:
+    std::vector<ForwarderWidgetConfig> toolPresets;
     bool collapsed = false;
 
     // Overriden methods
@@ -48,7 +50,7 @@ namespace SigDigger {
     ExternalToolConfig *m_panelConfig = nullptr;
     QVector<ForwarderWidget *> m_forwarderWidgets;
 
-    void addForwarderWidget(QString const &name);
+    void addForwarderWidget(ForwarderWidgetConfig const &);
 
   public:
     explicit ExternalTool(ExternalToolFactory *, UIMediator *, QWidget *parent = nullptr);
@@ -65,6 +67,9 @@ namespace SigDigger {
     void setColorConfig(ColorConfig const &) override;
     void setTimeStamp(struct timeval const &) override;
     void setProfile(Suscan::Source::Config &) override;
+
+  public slots:
+    void onConfigChanged();
 
   private:
     Ui::ExternalTool *ui;

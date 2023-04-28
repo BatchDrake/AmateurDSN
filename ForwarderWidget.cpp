@@ -27,6 +27,35 @@
 
 using namespace SigDigger;
 
+#define STRINGFY(x) #x
+#define STORE(field) obj.set(STRINGFY(field), this->field)
+#define LOAD(field) this->field = conf.get(STRINGFY(field), this->field)
+
+
+//////////////////////////// Widget config /////////////////////////////////////
+void
+ForwarderWidgetConfig::deserialize(Suscan::Object const &conf)
+{
+  LOAD(programPath);
+  LOAD(arguments);
+  LOAD(title);
+}
+
+Suscan::Object &&
+ForwarderWidgetConfig::serialize()
+{
+  Suscan::Object obj(SUSCAN_OBJECT_TYPE_OBJECT);
+
+  obj.setClass("ForwarderWidgetConfig");
+
+  STORE(programPath);
+  STORE(arguments);
+  STORE(title);
+
+  return persist(obj);
+}
+
+/////////////////////////// Widget implementation //////////////////////////////
 ForwarderWidget::ForwarderWidget(UIMediator *mediator, QWidget *parent) :
   QWidget(parent),
   ui(new Ui::ForwarderWidget)
@@ -104,6 +133,18 @@ ForwarderWidget::connectAll()
         SIGNAL(clicked(bool)),
         this,
         SLOT(onBrowse()));
+
+  connect(
+        ui->programPathEdit,
+        SIGNAL(textEdited(QString)),
+        this,
+        SLOT(onConfigChanged()));
+
+  connect(
+        ui->argumentEdit,
+        SIGNAL(textEdited(QString)),
+        this,
+        SLOT(onConfigChanged()));
 }
 
 void
@@ -200,12 +241,14 @@ void
 ForwarderWidget::setProgramPath(QString const &path)
 {
   ui->programPathEdit->setText(path);
+  ui->programPathEdit->setCursorPosition(0);
 }
 
 void
 ForwarderWidget::setArguments(QString const &args)
 {
   ui->argumentEdit->setText(args);
+  ui->argumentEdit->setCursorPosition(0);
 }
 
 void
@@ -236,6 +279,7 @@ void
 ForwarderWidget::setName(QString const &name)
 {
   ui->groupBox->setTitle(name);
+  m_config.title = name.toStdString();
   refreshNamedChannel();
 }
 
@@ -263,9 +307,27 @@ ForwarderWidget::mouseDoubleClickEvent(QMouseEvent *ev)
           QLineEdit::Normal,
           ui->groupBox->title(),
           &ok);
-    if (ok && text.size() > 0)
+    if (ok && text.size() > 0) {
       setName(text);
+      emit configChanged();
+    }
   }
+}
+
+void
+ForwarderWidget::setConfig(ForwarderWidgetConfig const &config)
+{
+  m_config = config;
+
+  setName(QString::fromStdString(m_config.title));
+  setProgramPath(QString::fromStdString(m_config.programPath));
+  setArguments(QString::fromStdString(m_config.arguments));
+}
+
+ForwarderWidgetConfig const &
+ForwarderWidget::getConfig() const
+{
+  return m_config;
 }
 
 /////////////////////////////////// Slots //////////////////////////////////////
@@ -360,4 +422,13 @@ ForwarderWidget::onBrowse()
 
   if (path.size() > 0)
     setProgramPath(path);
+}
+
+void
+ForwarderWidget::onConfigChanged()
+{
+  m_config.programPath = ui->programPathEdit->text().toStdString();
+  m_config.arguments   = ui->argumentEdit->text().toStdString();
+
+  emit configChanged();
 }

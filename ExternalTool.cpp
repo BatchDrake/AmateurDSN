@@ -30,21 +30,57 @@ using namespace SigDigger;
 void
 ExternalToolConfig::deserialize(Suscan::Object const &conf)
 {
+  Suscan::Object presets;
+
   LOAD(collapsed);
+
+  toolPresets.clear();
+
+  try {
+    presets = conf.getField("presets");
+
+    SU_ATTEMPT(presets.getType() == SUSCAN_OBJECT_TYPE_SET);
+
+    for (unsigned int i = 0; i < presets.length(); ++i) {
+      ForwarderWidgetConfig preset;
+
+      preset.deserialize(presets[i]);
+
+      toolPresets.push_back(preset);
+    }
+  } catch (Suscan::Exception &) {
+    for (unsigned int i = 0; i < 4; ++i) {
+      ForwarderWidgetConfig preset;
+
+      preset.title       = "Baudline #" + std::to_string(i + 1);
+      preset.programPath = "/usr/bin/baudline";
+      preset.arguments   = "-samplerate %SAMPLERATE% -channels 2 -stdin -record -quadrature -format le32f -scaleby %FFTSIZE% -flipcomplex";
+
+      toolPresets.push_back(preset);
+    }
+  }
 }
 
 Suscan::Object &&
 ExternalToolConfig::serialize()
 {
   Suscan::Object obj(SUSCAN_OBJECT_TYPE_OBJECT);
+  Suscan::Object presets(SUSCAN_OBJECT_TYPE_SET);
+  unsigned int i;
 
   obj.setClass("ExternalToolConfig");
 
   STORE(collapsed);
 
+  obj.setField("presets", presets);
+
+  for (i = 0; i < toolPresets.size(); ++i)
+    presets.append(toolPresets[i].serialize());
+
   return persist(obj);
 }
 
+/////////////////////////// Widget implementation //////////////////////////////
 ExternalTool::ExternalTool(
     ExternalToolFactory *factory,
     UIMediator *mediator,
@@ -59,9 +95,6 @@ ExternalTool::ExternalTool(
   m_mediator = mediator;
 
   setProperty("collapsed", m_panelConfig->collapsed);
-
-  for (int i = 0; i < 4; ++i)
-    addForwarderWidget("External tool #" + QString::number(i + 1));
 }
 
 ExternalTool::~ExternalTool()
@@ -70,13 +103,19 @@ ExternalTool::~ExternalTool()
 }
 
 void
-ExternalTool::addForwarderWidget(QString const &name)
+ExternalTool::addForwarderWidget(ForwarderWidgetConfig const &conf)
 {
   ForwarderWidget *widget = new ForwarderWidget(m_mediator);
 
-  widget->setName(name);
+  widget->setConfig(conf);
   ui->contentsLayout->addWidget(widget);
   m_forwarderWidgets.append(widget);
+
+  connect(
+        widget,
+        SIGNAL(configChanged()),
+        this,
+        SLOT(onConfigChanged()));
 }
 
 // Configuration methods
@@ -90,6 +129,9 @@ void
 ExternalTool::applyConfig()
 {
   setProperty("collapsed", m_panelConfig->collapsed);
+
+  for (unsigned int i = 0; i < m_panelConfig->toolPresets.size(); ++i)
+    addForwarderWidget(m_panelConfig->toolPresets[i]);
 }
 
 bool
@@ -138,3 +180,11 @@ ExternalTool::setProfile(Suscan::Source::Config &)
 
 }
 
+void
+ExternalTool::onConfigChanged()
+{
+  m_panelConfig->toolPresets.clear();
+
+  for (auto i = 0; i < m_forwarderWidgets.count(); ++i)
+    m_panelConfig->toolPresets.push_back(m_forwarderWidgets[i]->getConfig());
+}
