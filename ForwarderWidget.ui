@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>400</width>
-    <height>176</height>
+    <height>216</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -108,10 +108,10 @@
       <item row="2" column="1" colspan="2">
        <widget class="QLineEdit" name="argumentEdit">
         <property name="text">
-         <string>-samplerate %SAMPLERATE% -channels 2 -stdin -record -quadrature -format le32f -scaleby %FFTSIZE%</string>
+         <string>-samplerate %SAMPLERATE% -channels 2 -stdin -record -quadrature -format le32f -scaleby %FFTSIZE% -flipcomplex</string>
         </property>
         <property name="cursorPosition">
-         <number>96</number>
+         <number>0</number>
         </property>
        </widget>
       </item>
@@ -125,6 +125,9 @@
        <widget class="QLabel" name="stateLabel">
         <property name="text">
          <string>Idle</string>
+        </property>
+        <property name="wordWrap">
+         <bool>true</bool>
         </property>
        </widget>
       </item>

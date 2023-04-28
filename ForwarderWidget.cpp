@@ -20,7 +20,8 @@
 #include "ProcessForwarder.h"
 #include "ui_ForwarderWidget.h"
 #include <QFileDialog>
-
+#include <QMouseEvent>
+#include <QInputDialog>
 #include <UIMediator.h>
 #include <MainSpectrum.h>
 
@@ -144,14 +145,14 @@ ForwarderWidget::refreshNamedChannel()
     QColor color       = fullyOpen ? QColor("#007f00") : QColor("#003f00");
     QColor markerColor = fullyOpen ? QColor("#007f00") : QColor("#003f00");
     QString text;
-
+    QString name = ui->groupBox->title();
 
     if (fullyOpen) {
-      text = "External tool ("
+      text = name + " ("
           + SuWidgetsHelpers::formatQuantity(m_forwarder->getMaxBandwidth(), 3, "Hz")
           + ")";
     } else {
-      text = "External tool (opening)";
+      text = name + " (opening)";
     }
 
     m_namChan.value()->frequency   = cfFreq;
@@ -235,6 +236,7 @@ void
 ForwarderWidget::setName(QString const &name)
 {
   ui->groupBox->setTitle(name);
+  refreshNamedChannel();
 }
 
 QString
@@ -247,6 +249,23 @@ QString
 ForwarderWidget::arguments() const
 {
   return ui->argumentEdit->text();
+}
+
+void
+ForwarderWidget::mouseDoubleClickEvent(QMouseEvent *ev)
+{
+  if (ev->button() == Qt::LeftButton) {
+    bool ok;
+    QString text = QInputDialog::getText(
+          this,
+          "Change preset name",
+          "Name of this preset:",
+          QLineEdit::Normal,
+          ui->groupBox->title(),
+          &ok);
+    if (ok && text.size() > 0)
+      setName(text);
+  }
 }
 
 /////////////////////////////////// Slots //////////////////////////////////////

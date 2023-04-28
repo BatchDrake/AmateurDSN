@@ -60,7 +60,7 @@ namespace SigDigger {
     void setBandwidth(qreal);
 
     void setName(QString const &);
-
+    void mouseDoubleClickEvent(QMouseEvent *) override;
     QString programPath() const;
     QString arguments() const;
 
