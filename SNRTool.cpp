@@ -474,7 +474,6 @@ SNRTool::refreshMeasurements()
   qreal signalNoise;
   qreal noise;
   QString units;
-  qreal ratio;
   const char *dbUnits;
 
   if (ui->normalizeCheck->isChecked()) {
@@ -482,13 +481,11 @@ SNRTool::refreshMeasurements()
     noise       = m_currentNoiseDensity;
     units       = "pu/Hz";
     dbUnits     = "dBpu/Hz";
-    ratio       = m_widthRatio;
   } else {
     signalNoise = m_currentSignalNoise;
     noise       = m_currentNoise;
     units       = "pu";
     dbUnits     = "dBpu";
-    ratio       = 1;
   }
 
   if (signalNoise <= 0) {
@@ -525,7 +522,7 @@ SNRTool::refreshMeasurements()
             SU_POWER_DB_RAW(SU_ASFLOAT(snnr))));
   }
 
-  snr = (signalNoise - noise * ratio) / noise;
+  snr = snnr - 1;
   if (snr <= 0) {
     ui->snrLabel->setText("N/A");
     ui->snrDbLabel->setText("N/A");
@@ -563,23 +560,23 @@ SNRTool::refreshMeasurements()
   }
 
   m_clipBoardText =
-        "S+N:  " + ui->spnLabel->text() + " (" + ui->spnDbLabel->text()
+        "S+N:   " + ui->spnLabel->text() + " (" + ui->spnDbLabel->text()
       + ") in "
       + SuWidgetsHelpers::formatQuantity(ui->snBandwidthSpin->value(), 6, "Hz")
       + "\n"
-      + "N:    " + ui->nLabel->text() + " (" + ui->nDbLabel->text()
+      + "N:     " + ui->nLabel->text() + " (" + ui->nDbLabel->text()
       + ") in "
       + SuWidgetsHelpers::formatQuantity(ui->nBandwidthSpin->value(), 6, "Hz")
       + "\n"
-      + "SNNR: " + ui->snnrLabel->text() + " (" + ui->snnrDbLabel->text()
+      + "SNNR:  " + ui->snnrLabel->text() + " (" + ui->snnrDbLabel->text()
       + ")\n"
-      + "SNR:  " + ui->snrLabel->text() + " (" + ui->snrDbLabel->text()
+      + "SNR:   " + ui->snrLabel->text() + " (" + ui->snrDbLabel->text()
       + ")\n"
       + "eSNNR: " + ui->esnnrLabel->text() + " (" + ui->esnnrDbLabel->text()
-      + ") in   " + SuWidgetsHelpers::formatQuantity(ui->refBwSpin->value(), 6, "Hz")
+      + ") in " + SuWidgetsHelpers::formatQuantity(ui->refBwSpin->value(), 6, "Hz")
       + "\n"
       + "eSNR:  " + ui->esnrLabel->text() + " (" + ui->esnrDbLabel->text()
-      + ") in   " + SuWidgetsHelpers::formatQuantity(ui->refBwSpin->value(), 6, "Hz")
+      + ") in " + SuWidgetsHelpers::formatQuantity(ui->refBwSpin->value(), 6, "Hz")
       + "\n";
 }
 
