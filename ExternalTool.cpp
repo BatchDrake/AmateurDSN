@@ -40,6 +40,7 @@ ExternalToolConfig::deserialize(Suscan::Object const &conf)
     presets = conf.getField("presets");
 
     SU_ATTEMPT(presets.getType() == SUSCAN_OBJECT_TYPE_SET);
+    SU_ATTEMPT(presets.length() > 0);
 
     for (unsigned int i = 0; i < presets.length(); ++i) {
       ForwarderWidgetConfig preset;
