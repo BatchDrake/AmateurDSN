@@ -33,6 +33,8 @@ isEmpty(SIGDIGGER_PREFIX) {
 
 SOURCES += \
     ChirpCorrector.cpp \
+    DopplerTool.cpp \
+    DopplerToolFactory.cpp \
     ExternalTool.cpp \
     ExternalToolFactory.cpp \
     ForwarderWidget.cpp \
@@ -56,12 +58,15 @@ target.path = $$PLUGIN_DIRECTORY
 !isEmpty(target.path): INSTALLS += target
 
 FORMS += \
+  DopplerTool.ui \
   ExternalTool.ui \
   ForwarderWidget.ui \
   SNRTool.ui
 
 HEADERS += \
   ChirpCorrector.h \
+  DopplerTool.h \
+  DopplerToolFactory.h \
   ExternalTool.h \
   ExternalToolFactory.h \
   ForwarderWidget.h \
