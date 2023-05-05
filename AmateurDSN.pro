@@ -32,6 +32,7 @@ isEmpty(SIGDIGGER_PREFIX) {
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    ChirpCorrector.cpp \
     ExternalTool.cpp \
     ExternalToolFactory.cpp \
     ForwarderWidget.cpp \
@@ -60,6 +61,7 @@ FORMS += \
   SNRTool.ui
 
 HEADERS += \
+  ChirpCorrector.h \
   ExternalTool.h \
   ExternalToolFactory.h \
   ForwarderWidget.h \
