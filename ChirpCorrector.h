@@ -34,14 +34,17 @@ namespace SigDigger {
   class ChirpCorrector
   {
     Suscan::Analyzer *m_analyzer = nullptr;
-    SUDOUBLE  m_chirpRate = 0;
+    SUDOUBLE  m_resetOmega = 0;
+    SUDOUBLE  m_chirpRate  = 0;
     SUDOUBLE  m_deltaOmega = 0;
-    SUDOUBLE  m_currOmega = 0;
-    SUSCOUNT  m_sampCount = 0;
+    SUDOUBLE  m_currOmega  = 0;
+    SUSCOUNT  m_sampCount  = 0;
 
+    bool      m_doNewFreq = 0;
     bool      m_doNewRate = false;
     bool      m_doReset = false;
 
+    SUDOUBLE  m_desiredResetFreq = 0;
     SUDOUBLE  m_desiredRate = 0;
     bool      m_enabled = false;
     bool      m_installed = false;
@@ -64,6 +67,7 @@ namespace SigDigger {
 
     void setAnalyzer(Suscan::Analyzer *);
     void setEnabled(bool);
+    void setResetFrequency(SUDOUBLE freq);
     void setChirpRate(SUDOUBLE rate);
     void reset();
   };

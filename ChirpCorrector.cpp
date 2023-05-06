@@ -43,14 +43,29 @@ ChirpCorrector::ChirpCorrector()
 void
 ChirpCorrector::refreshCorrector()
 {
+  if (m_doNewFreq) {
+    SUDOUBLE sampRate = SCAST(SUDOUBLE, m_analyzer->getSampleRate());
+    // TODO: Do an atomic xchg
+    SUDOUBLE newResetOmega = -SCAST(
+          SUDOUBLE,
+          SU_NORM2ANG_FREQ(SU_ABS2NORM_FREQ(sampRate, m_desiredResetFreq)));
+
+    m_currOmega += newResetOmega - m_resetOmega;
+
+    m_resetOmega = newResetOmega;
+    m_doNewFreq = false;
+  }
+
   if (m_doReset) {
-    m_currOmega = 0;
+    m_currOmega = m_resetOmega;
     m_doReset = false;
   }
 
   if (m_doNewRate) {
     SUDOUBLE chirpRatePerSample;
     SUDOUBLE sampRate = SCAST(SUDOUBLE, m_analyzer->getSampleRate());
+
+    // TODO: Rely on an atomic xchg
     m_chirpRate = m_desiredRate;
 
     chirpRatePerSample = m_chirpRate / sampRate;
@@ -94,8 +109,9 @@ ChirpCorrector::ensureCorrector()
 {
   if (m_analyzer != nullptr) {
     if (m_enabled && !m_installed) {
+      m_doNewFreq = true;
       m_doNewRate = true;
-      m_doReset = true;
+      m_doReset   = true;
       m_analyzer->registerBaseBandFilter(
             onChirpCorrectorBaseBandData,
             this,
@@ -121,6 +137,13 @@ ChirpCorrector::setEnabled(bool enabled)
 {
   m_enabled = enabled;
   ensureCorrector();
+}
+
+void
+ChirpCorrector::setResetFrequency(SUDOUBLE freq)
+{
+  m_desiredResetFreq = freq;
+  m_doNewFreq = true;
 }
 
 void

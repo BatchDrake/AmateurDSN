@@ -22,6 +22,9 @@
 #include <UIMediator.h>
 #include <MainSpectrum.h>
 #include <QMessageBox>
+#include "ChirpCorrector.h"
+
+#define DOPPLERTOOL_SPEED_OF_LIGHT 299792458. // [m/s]
 
 using namespace SigDigger;
 
@@ -34,7 +37,8 @@ void
 DopplerToolConfig::deserialize(Suscan::Object const &conf)
 {
   LOAD(collapsed);
-  LOAD(speed);
+  LOAD(velocity);
+  LOAD(accel);
   LOAD(bias);
   LOAD(enabled);
 }
@@ -47,7 +51,8 @@ DopplerToolConfig::serialize()
   obj.setClass("DopplerToolConfig");
 
   STORE(collapsed);
-  STORE(speed);
+  STORE(velocity);
+  STORE(accel);
   STORE(bias);
   STORE(enabled);
 
@@ -64,6 +69,7 @@ DopplerTool::DopplerTool(
 {
   ui->setupUi(this);
 
+  m_corrector = new ChirpCorrector();
   assertConfig();
 
   m_spectrum = mediator->getMainSpectrum();
@@ -75,19 +81,174 @@ DopplerTool::DopplerTool(
 
 DopplerTool::~DopplerTool()
 {
+  delete m_corrector;
   delete ui;
+}
+
+void
+DopplerTool::setFromVelocity(qreal velocity)
+{
+  SUFREQ freq = m_mediator->getCurrentCenterFreq();
+
+  // From the Doppler-Fizeau shift equation:
+  //
+  //         c
+  // Δf = - --- Δv
+  //         f
+  //
+
+  m_panelConfig->velocity = velocity;
+  m_currResetFreq         = -DOPPLERTOOL_SPEED_OF_LIGHT / freq * velocity;
+
+  m_corrector->setResetFrequency(m_currResetFreq);
+}
+
+void
+DopplerTool::setFromShift(qreal shift)
+{
+  SUFREQ freq = m_mediator->getCurrentCenterFreq();
+
+  m_panelConfig->velocity = -freq / DOPPLERTOOL_SPEED_OF_LIGHT * shift;
+  m_currResetFreq         = shift;
+
+  m_corrector->setResetFrequency(m_currResetFreq);
+}
+
+void
+DopplerTool::setFromAccel(qreal accel)
+{
+  SUFREQ freq = m_mediator->getCurrentCenterFreq();
+
+  // From the Doppler-Fizeau shift equation:
+  //
+  //         c         dΔf       c   dΔv       c
+  // Δf = - --- Δv => ----- = - --- ----- = - --- a
+  //         f         dt        f    dt       f
+  //
+
+  m_panelConfig->accel = accel;
+  m_currRate           = -DOPPLERTOOL_SPEED_OF_LIGHT / freq * accel;
+  m_correctedRate      = m_currRate + m_panelConfig->bias;
+
+  m_corrector->setChirpRate(m_correctedRate);
+}
+
+void
+DopplerTool::setFromRate(qreal rate)
+{
+  SUFREQ freq = m_mediator->getCurrentCenterFreq();
+
+  // See setFromAccel for details
+
+  m_panelConfig->accel = -freq / DOPPLERTOOL_SPEED_OF_LIGHT * rate;
+  m_currRate           = rate;
+  m_correctedRate      = rate + m_panelConfig->bias;
+
+  m_corrector->setChirpRate(m_correctedRate);
 }
 
 void
 DopplerTool::connectAll()
 {
+  connect(
+        m_mediator,
+        SIGNAL(frequencyChanged(qint64,qint64)),
+        this,
+        SLOT(onFrequencyChanged()));
 
+  connect(
+        ui->velSpinBox,
+        SIGNAL(valueChanged(double)),
+        this,
+        SLOT(onVelChanged()));
+
+  connect(
+        ui->accelSpinBox,
+        SIGNAL(valueChanged(double)),
+        this,
+        SLOT(onAccelChanged()));
+
+  connect(
+        ui->freqSpinBox,
+        SIGNAL(valueChanged(double)),
+        this,
+        SLOT(onShiftChanged()));
+
+  connect(
+        ui->freqRateSpinBox,
+        SIGNAL(valueChanged(double)),
+        this,
+        SLOT(onRateChanged()));
+
+  connect(
+        ui->rateBiasSpinBox,
+        SIGNAL(valueChanged(double)),
+        this,
+        SLOT(onBiasChanged()));
+
+  connect(
+        ui->resetButton,
+        SIGNAL(clicked(bool)),
+        this,
+        SLOT(onReset()));
+
+  connect(
+        ui->enableButton,
+        SIGNAL(toggled(bool)),
+        this,
+        SLOT(onToggleEnabled()));
 }
 
 void
 DopplerTool::refreshUi()
 {
+  bool prev = enterChangeState();
 
+  ui->velSpinBox->setValue(m_panelConfig->velocity);
+  ui->accelSpinBox->setValue(m_panelConfig->accel);
+
+  ui->freqSpinBox->setValue(m_currResetFreq);
+  ui->freqRateSpinBox->setValue(m_currRate);
+  ui->rateBiasSpinBox->setValue(m_panelConfig->bias);
+
+  ui->enableButton->setChecked(m_panelConfig->enabled);
+
+  leaveChangeState(prev);
+}
+
+void
+DopplerTool::applySpectrumState()
+{
+  setFromVelocity(m_panelConfig->velocity);
+  setFromAccel(m_panelConfig->accel);
+  refreshUi();
+}
+
+bool
+DopplerTool::enterChangeState()
+{
+  bool blocked;
+
+  blocked =
+         ui->freqSpinBox->blockSignals(true)
+      && ui->freqRateSpinBox->blockSignals(true)
+      && ui->rateBiasSpinBox->blockSignals(true)
+      && ui->velSpinBox->blockSignals(true)
+      && ui->accelSpinBox->blockSignals(true)
+      && ui->enableButton->blockSignals(true);
+
+  return blocked;
+}
+
+void
+DopplerTool::leaveChangeState(bool state)
+{
+  ui->freqSpinBox->blockSignals(state);
+  ui->accelSpinBox->blockSignals(state);
+  ui->velSpinBox->blockSignals(state);
+  ui->freqRateSpinBox->blockSignals(state);
+  ui->rateBiasSpinBox->blockSignals(state);
+  ui->enableButton->blockSignals(state);
 }
 
 // Configuration methods
@@ -101,6 +262,12 @@ void
 DopplerTool::applyConfig()
 {
   setProperty("collapsed", m_panelConfig->collapsed);
+
+  setFromVelocity(m_panelConfig->velocity);
+  setFromAccel(m_panelConfig->accel);
+
+  m_corrector->setEnabled(m_panelConfig->enabled);
+
   refreshUi();
 }
 
@@ -126,6 +293,8 @@ DopplerTool::setState(int, Suscan::Analyzer *analyzer)
 
   if (analyzer != nullptr)
     applySpectrumState();
+
+  m_corrector->setAnalyzer(m_analyzer);
 
   refreshUi();
 }
@@ -156,3 +325,57 @@ DopplerTool::setProfile(Suscan::Source::Config &)
 
 
 ////////////////////////////// Slots //////////////////////////////////////////
+void
+DopplerTool::onVelChanged()
+{
+  setFromVelocity(ui->velSpinBox->value());
+  refreshUi();
+}
+
+void
+DopplerTool::onAccelChanged()
+{
+  setFromAccel(ui->accelSpinBox->value());
+  refreshUi();
+}
+
+void
+DopplerTool::onShiftChanged()
+{
+  setFromShift(ui->freqSpinBox->value());
+  refreshUi();
+}
+
+void
+DopplerTool::onRateChanged()
+{
+  setFromRate(ui->freqRateSpinBox->value());
+  refreshUi();
+}
+
+void
+DopplerTool::onBiasChanged()
+{
+  m_panelConfig->bias = ui->rateBiasSpinBox->value();
+  setFromAccel(m_panelConfig->accel);
+  refreshUi();
+}
+
+void
+DopplerTool::onReset()
+{
+  m_corrector->reset();
+}
+
+void
+DopplerTool::onToggleEnabled()
+{
+  m_panelConfig->enabled = ui->enableButton->isChecked();
+  m_corrector->setEnabled(m_panelConfig->enabled);
+}
+
+void
+DopplerTool::onFrequencyChanged()
+{
+  applySpectrumState();
+}

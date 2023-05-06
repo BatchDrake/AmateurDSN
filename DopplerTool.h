@@ -34,12 +34,15 @@ namespace Suscan {
 
 namespace SigDigger {
   class MainSpectrum;
+  class ChirpCorrector;
+
   class DopplerToolConfig : public Suscan::Serializable {
   public:
-    bool collapsed = false;
-    double speed = 0;
-    double bias = 0;
-    bool enabled = false;
+    bool   collapsed = false;
+    double velocity  = 0;
+    double accel     = 0;
+    double bias      = 0;
+    bool   enabled   = false;
 
     // Overriden methods
     void deserialize(Suscan::Object const &conf) override;
@@ -51,12 +54,27 @@ namespace SigDigger {
     Q_OBJECT
 
     DopplerToolConfig *m_panelConfig = nullptr;
-    Suscan::Analyzer *m_analyzer = nullptr;
-    MainSpectrum     *m_spectrum = nullptr;
+    Suscan::Analyzer  *m_analyzer    = nullptr;
+    MainSpectrum      *m_spectrum    = nullptr;
+    ChirpCorrector    *m_corrector   = nullptr;
+
+    // This is what is actually passed to the corrector
+    qreal m_currResetFreq = 0;
+    qreal m_currRate = 0;
+    qreal m_correctedRate = 0;
 
     void refreshUi();
     void connectAll();
     void applySpectrumState();
+
+    void setFromVelocity(qreal);
+    void setFromShift(qreal);
+
+    void setFromAccel(qreal);
+    void setFromRate(qreal);
+
+    bool enterChangeState();
+    void leaveChangeState(bool);
 
   public:
     explicit DopplerTool(DopplerToolFactory *, UIMediator *, QWidget *parent = nullptr);
@@ -75,7 +93,15 @@ namespace SigDigger {
     void setProfile(Suscan::Source::Config &) override;
 
   public slots:
+    void onVelChanged();
+    void onAccelChanged();
 
+    void onShiftChanged();
+    void onRateChanged();
+    void onBiasChanged();
+    void onReset();
+    void onToggleEnabled();
+    void onFrequencyChanged();
 
   private:
     Ui::DopplerTool *ui;
