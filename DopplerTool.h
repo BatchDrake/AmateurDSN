@@ -35,6 +35,7 @@ namespace Suscan {
 namespace SigDigger {
   class MainSpectrum;
   class ChirpCorrector;
+  class GlobalProperty;
 
   class DopplerToolConfig : public Suscan::Serializable {
   public:
@@ -57,6 +58,15 @@ namespace SigDigger {
     Suscan::Analyzer  *m_analyzer    = nullptr;
     MainSpectrum      *m_spectrum    = nullptr;
     ChirpCorrector    *m_corrector   = nullptr;
+
+    // Global properties
+    static bool g_propsCreated;
+    GlobalProperty *m_propShift = nullptr;
+    GlobalProperty *m_propRate  = nullptr;
+    GlobalProperty *m_propBias  = nullptr;
+    GlobalProperty *m_propAccel = nullptr;
+    GlobalProperty *m_propVel   = nullptr;
+    GlobalProperty *m_propCorr  = nullptr;
 
     // This is what is actually passed to the corrector
     qreal m_currResetFreq = 0;
@@ -99,6 +109,15 @@ namespace SigDigger {
     void onShiftChanged();
     void onRateChanged();
     void onBiasChanged();
+
+    void onPropVelChanged();
+    void onPropAccelChanged();
+
+    void onPropShiftChanged();
+    void onPropRateChanged();
+    void onPropBiasChanged();
+
+
     void onReset();
     void onToggleEnabled();
     void onFrequencyChanged();

@@ -18,6 +18,7 @@
 //
 #include "DopplerTool.h"
 #include <QEvent>
+#include <GlobalProperty.h>
 #include "ui_DopplerTool.h"
 #include <UIMediator.h>
 #include <MainSpectrum.h>
@@ -27,6 +28,8 @@
 #define DOPPLERTOOL_SPEED_OF_LIGHT 299792458. // [m/s]
 
 using namespace SigDigger;
+
+bool DopplerTool::g_propsCreated = false;
 
 #define STRINGFY(x) #x
 #define STORE(field) obj.set(STRINGFY(field), this->field)
@@ -74,6 +77,40 @@ DopplerTool::DopplerTool(
 
   m_spectrum = mediator->getMainSpectrum();
   setProperty("collapsed", m_panelConfig->collapsed);
+
+  if (!g_propsCreated) {
+    GlobalProperty::registerProperty(
+          "dopplertool:freq_shift",
+          "Doppler Tool: Frequency shift at t = 0 [Hz]",
+          0.)->setAdjustable(true);
+    GlobalProperty::registerProperty(
+          "dopplertool:freq_rate",
+          "Doppler Tool: Frequency rate [Hz/s]",
+          0.)->setAdjustable(true);
+    GlobalProperty::registerProperty(
+          "dopplertool:bias_rate",
+          "Doppler Tool: Frequency rate bias [Hz/s]",
+          0.)->setAdjustable(true);
+    GlobalProperty::registerProperty(
+          "dopplertool:correction",
+          "Doppler Tool: Total Doppler correction",
+          "N/A");
+    GlobalProperty::registerProperty(
+          "dopplertool:velocity",
+          "Doppler Tool: VLOS velocity at t = 0 [m/s]",
+          0.)->setAdjustable(true);
+    GlobalProperty::registerProperty(
+          "dopplertool:acceleration",
+          "Doppler Tool: VLOS acceleation [m/s^2]",
+          0.)->setAdjustable(true);
+  }
+
+  m_propShift = GlobalProperty::lookupProperty("dopplertool:freq_shift");
+  m_propRate  = GlobalProperty::lookupProperty("dopplertool:freq_rate");
+  m_propBias  = GlobalProperty::lookupProperty("dopplertool:bias_rate");
+  m_propVel   = GlobalProperty::lookupProperty("dopplertool:velocity");
+  m_propAccel = GlobalProperty::lookupProperty("dopplertool:acceleration");
+  m_propCorr  = GlobalProperty::lookupProperty("dopplertool:correction");
 
   refreshUi();
   connectAll();
@@ -197,6 +234,37 @@ DopplerTool::connectAll()
         SIGNAL(toggled(bool)),
         this,
         SLOT(onToggleEnabled()));
+
+  // Global properties
+  connect(
+        m_propVel,
+        SIGNAL(changed()),
+        this,
+        SLOT(onPropVelChanged()));
+
+  connect(
+        m_propAccel,
+        SIGNAL(changed()),
+        this,
+        SLOT(onPropAccelChanged()));
+
+  connect(
+        m_propShift,
+        SIGNAL(changed()),
+        this,
+        SLOT(onPropShiftChanged()));
+
+  connect(
+        m_propRate,
+        SIGNAL(changed()),
+        this,
+        SLOT(onPropRateChanged()));
+
+  connect(
+        m_propBias,
+        SIGNAL(changed()),
+        this,
+        SLOT(onPropBiasChanged()));
 }
 
 void
@@ -212,6 +280,13 @@ DopplerTool::refreshUi()
   ui->rateBiasSpinBox->setValue(m_panelConfig->bias);
 
   ui->enableButton->setChecked(m_panelConfig->enabled);
+
+  m_propShift->setValueSilent(m_currResetFreq);
+  m_propRate->setValueSilent(m_currRate);
+  m_propBias->setValueSilent(m_panelConfig->bias);
+
+  m_propAccel->setValueSilent(m_panelConfig->accel);
+  m_propVel->setValueSilent(m_panelConfig->velocity);
 
   leaveChangeState(prev);
 }
@@ -328,6 +403,8 @@ DopplerTool::setTimeStamp(struct timeval const &)
   } else {
     ui->currCorrLabel->setText("N/A");
   }
+
+  m_propCorr->setValueSilent(ui->currCorrLabel->text());
 }
 
 void
@@ -373,6 +450,43 @@ DopplerTool::onBiasChanged()
   setFromAccel(m_panelConfig->accel);
   refreshUi();
 }
+
+void
+DopplerTool::onPropVelChanged()
+{
+  setFromVelocity(m_propVel->toDouble());
+  refreshUi();
+}
+
+void
+DopplerTool::onPropAccelChanged()
+{
+  setFromAccel(m_propAccel->toDouble());
+  refreshUi();
+}
+
+void
+DopplerTool::onPropShiftChanged()
+{
+  setFromShift(m_propShift->toDouble());
+  refreshUi();
+}
+
+void
+DopplerTool::onPropRateChanged()
+{
+  setFromRate(m_propRate->toDouble());
+  refreshUi();
+}
+
+void
+DopplerTool::onPropBiasChanged()
+{
+  m_panelConfig->bias = m_propBias->toDouble();
+  setFromAccel(m_panelConfig->accel);
+  refreshUi();
+}
+
 
 void
 DopplerTool::onReset()
