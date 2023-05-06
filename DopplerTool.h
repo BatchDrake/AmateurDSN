@@ -61,12 +61,14 @@ namespace SigDigger {
 
     // Global properties
     static bool g_propsCreated;
-    GlobalProperty *m_propShift = nullptr;
-    GlobalProperty *m_propRate  = nullptr;
-    GlobalProperty *m_propBias  = nullptr;
-    GlobalProperty *m_propAccel = nullptr;
-    GlobalProperty *m_propVel   = nullptr;
-    GlobalProperty *m_propCorr  = nullptr;
+    GlobalProperty *m_propShift   = nullptr;
+    GlobalProperty *m_propRate    = nullptr;
+    GlobalProperty *m_propBias    = nullptr;
+    GlobalProperty *m_propAccel   = nullptr;
+    GlobalProperty *m_propVel     = nullptr;
+    GlobalProperty *m_propCorr    = nullptr;
+    GlobalProperty *m_propEnabled = nullptr;
+    GlobalProperty *m_propReset   = nullptr;
 
     // This is what is actually passed to the corrector
     qreal m_currResetFreq = 0;
@@ -117,6 +119,8 @@ namespace SigDigger {
     void onPropRateChanged();
     void onPropBiasChanged();
 
+    void onPropEnabledChanged();
+    void onPropResetChanged();
 
     void onReset();
     void onToggleEnabled();

@@ -103,6 +103,14 @@ DopplerTool::DopplerTool(
           "dopplertool:acceleration",
           "Doppler Tool: VLOS acceleation [m/s^2]",
           0.)->setAdjustable(true);
+    GlobalProperty::registerProperty(
+          "dopplertool:enabled",
+          "Doppler Tool: correction enabled (boolean)",
+          0.)->setAdjustable(true);
+    GlobalProperty::registerProperty(
+          "dopplertool:reset",
+          "Doppler Tool: Reset requested (boolean)",
+          0.)->setAdjustable(true);
   }
 
   m_propShift = GlobalProperty::lookupProperty("dopplertool:freq_shift");
@@ -111,6 +119,9 @@ DopplerTool::DopplerTool(
   m_propVel   = GlobalProperty::lookupProperty("dopplertool:velocity");
   m_propAccel = GlobalProperty::lookupProperty("dopplertool:acceleration");
   m_propCorr  = GlobalProperty::lookupProperty("dopplertool:correction");
+
+  m_propEnabled = GlobalProperty::lookupProperty("dopplertool:enabled");
+  m_propReset   = GlobalProperty::lookupProperty("dopplertool:reset");
 
   refreshUi();
   connectAll();
@@ -265,6 +276,18 @@ DopplerTool::connectAll()
         SIGNAL(changed()),
         this,
         SLOT(onPropBiasChanged()));
+
+  connect(
+        m_propEnabled,
+        SIGNAL(changed()),
+        this,
+        SLOT(onPropEnabledChanged()));
+
+  connect(
+        m_propReset,
+        SIGNAL(changed()),
+        this,
+        SLOT(onPropResetChanged()));
 }
 
 void
@@ -506,3 +529,22 @@ DopplerTool::onFrequencyChanged()
 {
   applySpectrumState();
 }
+
+void
+DopplerTool::onPropEnabledChanged()
+{
+  m_panelConfig->enabled = m_propEnabled->toBool();
+  m_corrector->setEnabled(m_panelConfig->enabled);
+}
+
+void
+DopplerTool::onPropResetChanged()
+{
+  bool reset = m_propReset->toBool();
+
+  if (reset) {
+    m_propReset->setValueSilent(false);
+    m_corrector->reset();
+  }
+}
+
