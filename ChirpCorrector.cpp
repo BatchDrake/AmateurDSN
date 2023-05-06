@@ -19,6 +19,10 @@
 #include "ChirpCorrector.h"
 #include <SuWidgetsHelpers.h>
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#  define QMutexLocker QMutexLocker<QRecursiveMutex>
+#endif
+
 using namespace SigDigger;
 
 SUBOOL
@@ -26,23 +30,52 @@ onChirpCorrectorBaseBandData(
     void *privdata,
     suscan_analyzer_t *,
     SUCOMPLEX *samples,
-    SUSCOUNT length)
+    SUSCOUNT length,
+    SUSCOUNT offset)
 {
   ChirpCorrector *corrector = reinterpret_cast<ChirpCorrector *>(privdata);
 
-  corrector->process(samples, length);
+  corrector->process(samples, length, offset);
 
   return SU_TRUE;
 }
 
 ChirpCorrector::ChirpCorrector()
+#if QT_VERSION < QT_VERSION_CHECK(5, 15, 0)
+  : m_dataExchangeMutex(QMutex::Recursive)
+#endif
 {
   su_ncqo_init(&m_ncqo, 0);
 }
 
-void
-ChirpCorrector::refreshCorrector()
+bool
+ChirpCorrector::needsRefresh() const
 {
+  return m_doNewFreq || m_doReset || m_doNewRate;
+}
+
+void
+ChirpCorrector::refreshCorrector(SUSCOUNT offset)
+{
+  QMutexLocker locker(&m_dataExchangeMutex);
+
+  if (offset != m_expectedOffset) {
+    // Seek found! Adjust the frequency accordingly. We note that
+    // at m_expectedOffset the frequency was omega. In our model:
+    //
+    // omega = omega0 + m(offset - offset0)
+    //
+    // In which:
+    //    omega0  = m_resetOmega
+    //    offset0 = m_resetOffset
+    //    m       = m_deltaOmega
+
+    SUSDIFF deltaOff = SCAST(SUSDIFF, offset - m_refOffset);
+    m_currOmega      = m_refOmega + m_deltaOmega * SCAST(SUDOUBLE, deltaOff);
+    m_expectedOffset = offset;
+    m_haveCurrOmega = true;
+  }
+
   if (m_doNewFreq) {
     SUDOUBLE sampRate = SCAST(SUDOUBLE, m_analyzer->getSampleRate());
     // TODO: Do an atomic xchg
@@ -51,14 +84,20 @@ ChirpCorrector::refreshCorrector()
           SU_NORM2ANG_FREQ(SU_ABS2NORM_FREQ(sampRate, m_desiredResetFreq)));
 
     m_currOmega += newResetOmega - m_resetOmega;
-
+    m_haveCurrOmega = true;
     m_resetOmega = newResetOmega;
-    m_doNewFreq = false;
+    m_sampCount  = 0;
+    m_doNewFreq  = false;
+    m_refOmega   = m_currOmega;
+    m_refOffset  = offset;
   }
 
   if (m_doReset) {
-    m_currOmega = m_resetOmega;
+    m_currOmega = m_refOmega = m_resetOmega;
+    m_refOffset = offset;
     m_doReset = false;
+    m_haveCurrOmega = true;
+    m_reportedCurrOmega = m_currOmega;
   }
 
   if (m_doNewRate) {
@@ -73,18 +112,21 @@ ChirpCorrector::refreshCorrector()
           SUDOUBLE,
           SU_NORM2ANG_FREQ(SU_ABS2NORM_FREQ(sampRate, chirpRatePerSample)));
 
+    m_refOmega  = m_currOmega;
+    m_refOffset = offset;
     m_doNewRate = false;
   }
 }
 
 void
-ChirpCorrector::process(SUCOMPLEX *samples, SUSCOUNT length)
+ChirpCorrector::process(SUCOMPLEX *samples, SUSCOUNT length, SUSCOUNT offset)
 {
   if (m_enabled) {
     SUSCOUNT i;
     SUDOUBLE currOmega, deltaOmega;
 
-    refreshCorrector();
+    if (needsRefresh() || offset != m_expectedOffset)
+      refreshCorrector(offset);
 
     currOmega  = m_currOmega;
     deltaOmega = m_deltaOmega;
@@ -100,7 +142,15 @@ ChirpCorrector::process(SUCOMPLEX *samples, SUSCOUNT length)
       samples[i] *= su_ncqo_read(&m_ncqo);
     }
 
-    m_currOmega = currOmega;
+    m_sampCount      += length;
+    m_expectedOffset  = length + offset;
+    m_currOmega       = currOmega;
+
+    if (m_sampCount > m_sampCountMax) {
+      QMutexLocker locker(&m_dataExchangeMutex);
+      m_haveCurrOmega = true;
+      m_reportedCurrOmega = m_currOmega;
+    }
   }
 }
 
@@ -111,7 +161,7 @@ ChirpCorrector::ensureCorrector()
     if (m_enabled && !m_installed) {
       m_doNewFreq = true;
       m_doNewRate = true;
-      m_doReset   = true;
+      m_sampCountMax = m_analyzer->getSampleRate();
       m_analyzer->registerBaseBandFilter(
             onChirpCorrectorBaseBandData,
             this,
@@ -124,8 +174,10 @@ ChirpCorrector::ensureCorrector()
 void
 ChirpCorrector::setAnalyzer(Suscan::Analyzer *analyzer)
 {
-  if (analyzer != m_analyzer)
+  if (analyzer != m_analyzer) {
     m_installed = false;
+    m_haveCurrOmega = false;
+  }
 
   m_analyzer = analyzer;
 
@@ -142,6 +194,7 @@ ChirpCorrector::setEnabled(bool enabled)
 void
 ChirpCorrector::setResetFrequency(SUDOUBLE freq)
 {
+  QMutexLocker locker(&m_dataExchangeMutex);
   m_desiredResetFreq = freq;
   m_doNewFreq = true;
 }
@@ -149,9 +202,28 @@ ChirpCorrector::setResetFrequency(SUDOUBLE freq)
 void
 ChirpCorrector::setChirpRate(SUDOUBLE rate)
 {
+  QMutexLocker locker(&m_dataExchangeMutex);
   m_desiredRate = rate;
   m_doNewRate = true;
 
+}
+
+SUFLOAT
+ChirpCorrector::getCurrentCorrection()
+{
+  SUDOUBLE currOmega = 0;
+
+  if (m_haveCurrOmega) {
+    QMutexLocker locker(&m_dataExchangeMutex);
+    currOmega = m_reportedCurrOmega;
+  }
+
+  if (m_analyzer == nullptr)
+    return 0;
+
+  return SU_NORM2ABS_FREQ(
+        m_analyzer->getSampleRate(),
+        SU_ANG2NORM_FREQ(SU_ASFLOAT(currOmega)));
 }
 
 void

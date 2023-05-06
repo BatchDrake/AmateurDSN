@@ -314,7 +314,20 @@ DopplerTool::setColorConfig(ColorConfig const &)
 void
 DopplerTool::setTimeStamp(struct timeval const &)
 {
-
+  if (m_analyzer != nullptr) {
+    if (m_panelConfig->enabled) {
+      ui->currCorrLabel->setText(
+            SuWidgetsHelpers::formatQuantity(
+              SCAST(qreal, m_corrector->getCurrentCorrection()),
+              3,
+              "Hz",
+              true));
+    } else {
+      ui->currCorrLabel->setText("None");
+    }
+  } else {
+    ui->currCorrLabel->setText("N/A");
+  }
 }
 
 void

@@ -19,6 +19,8 @@
 #ifndef CHIRPCORRECTOR_H
 #define CHIRPCORRECTOR_H
 
+#include <QObject>
+#include <QMutex>
 #include <Suscan/Library.h>
 #include <Suscan/Analyzer.h>
 
@@ -28,17 +30,30 @@ SUBOOL onChirpCorrectorBaseBandData(
     void *privdata,
     suscan_analyzer_t *,
     SUCOMPLEX *samples,
-    SUSCOUNT length);
+    SUSCOUNT length,
+    SUSCOUNT looped);
+
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+#  define QRecursiveMutex QMutex
+#endif
 
 namespace SigDigger {
   class ChirpCorrector
   {
     Suscan::Analyzer *m_analyzer = nullptr;
-    SUDOUBLE  m_resetOmega = 0;
-    SUDOUBLE  m_chirpRate  = 0;
-    SUDOUBLE  m_deltaOmega = 0;
-    SUDOUBLE  m_currOmega  = 0;
-    SUSCOUNT  m_sampCount  = 0;
+    SUDOUBLE  m_resetOmega   = 0;
+    SUDOUBLE  m_chirpRate    = 0;
+    SUDOUBLE  m_deltaOmega   = 0;
+    SUDOUBLE  m_currOmega    = 0;
+    SUSCOUNT  m_sampCount    = 0;
+    SUSCOUNT  m_sampCountMax = 0;
+    SUSCOUNT  m_expectedOffset = 0;
+
+    SUSCOUNT  m_refOffset    = 0;
+    SUDOUBLE  m_refOmega     = 0;
+
+    bool      m_haveCurrOmega = false;
+    SUDOUBLE  m_reportedCurrOmega;
 
     bool      m_doNewFreq = 0;
     bool      m_doNewRate = false;
@@ -50,16 +65,20 @@ namespace SigDigger {
     bool      m_installed = false;
     su_ncqo_t m_ncqo;
 
+    QRecursiveMutex m_dataExchangeMutex;
+
     void ensureCorrector();
-    void refreshCorrector();
-    void process(SUCOMPLEX *samples, SUSCOUNT length);
+    bool needsRefresh() const;
+    void refreshCorrector(SUSCOUNT off);
+    void process(SUCOMPLEX *samples, SUSCOUNT length, SUSCOUNT offset);
 
     friend SUBOOL
     ::onChirpCorrectorBaseBandData(
         void *privdata,
         suscan_analyzer_t *,
         SUCOMPLEX *samples,
-        SUSCOUNT length);
+        SUSCOUNT length,
+        SUSCOUNT looped);
 
   public:
     ChirpCorrector();
@@ -69,6 +88,9 @@ namespace SigDigger {
     void setEnabled(bool);
     void setResetFrequency(SUDOUBLE freq);
     void setChirpRate(SUDOUBLE rate);
+
+    SUFLOAT getCurrentCorrection();
+
     void reset();
   };
 }
