@@ -146,7 +146,7 @@ DopplerTool::setFromVelocity(qreal velocity)
   //
 
   m_panelConfig->velocity = velocity;
-  m_currResetFreq         = -DOPPLERTOOL_SPEED_OF_LIGHT / freq * velocity;
+  m_currResetFreq         = -freq / DOPPLERTOOL_SPEED_OF_LIGHT * velocity;
 
   m_corrector->setResetFrequency(m_currResetFreq);
 }
@@ -156,7 +156,7 @@ DopplerTool::setFromShift(qreal shift)
 {
   SUFREQ freq = m_mediator->getCurrentCenterFreq();
 
-  m_panelConfig->velocity = -freq / DOPPLERTOOL_SPEED_OF_LIGHT * shift;
+  m_panelConfig->velocity = -DOPPLERTOOL_SPEED_OF_LIGHT / freq * shift;
   m_currResetFreq         = shift;
 
   m_corrector->setResetFrequency(m_currResetFreq);
@@ -175,7 +175,7 @@ DopplerTool::setFromAccel(qreal accel)
   //
 
   m_panelConfig->accel = accel;
-  m_currRate           = -DOPPLERTOOL_SPEED_OF_LIGHT / freq * accel;
+  m_currRate           = -freq / DOPPLERTOOL_SPEED_OF_LIGHT * accel;
   m_correctedRate      = m_currRate + m_panelConfig->bias;
 
   m_corrector->setChirpRate(m_correctedRate);
@@ -188,7 +188,7 @@ DopplerTool::setFromRate(qreal rate)
 
   // See setFromAccel for details
 
-  m_panelConfig->accel = -freq / DOPPLERTOOL_SPEED_OF_LIGHT * rate;
+  m_panelConfig->accel = -DOPPLERTOOL_SPEED_OF_LIGHT / freq * rate;
   m_currRate           = rate;
   m_correctedRate      = rate + m_panelConfig->bias;
 
