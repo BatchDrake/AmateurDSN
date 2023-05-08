@@ -20,6 +20,7 @@
 #include <UIMediator.h>
 #include <SuWidgetsHelpers.h>
 #include <Suscan/AnalyzerRequestTracker.h>
+#include <SigDiggerHelpers.h>
 
 using namespace SigDigger;
 
@@ -186,6 +187,7 @@ ProcessForwarder::setState(ProcessForwarderState state, QString const &msg)
           arg = arg.replace(
             "%FFTSIZE%",
             QString::number(SCAST(int, m_fftSize)));
+          arg = SigDiggerHelpers::expandGlobalProperties(arg);
           correctedList.append(arg);
         }
 
