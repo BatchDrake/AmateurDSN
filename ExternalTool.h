@@ -54,7 +54,7 @@ namespace SigDigger {
 
   public:
     explicit ExternalTool(ExternalToolFactory *, UIMediator *, QWidget *parent = nullptr);
-    ~ExternalTool();
+    ~ExternalTool() override;
 
     // Configuration methods
     Suscan::Serializable *allocConfig() override;

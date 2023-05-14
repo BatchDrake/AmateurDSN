@@ -24,8 +24,7 @@
 #include <MainSpectrum.h>
 #include <QMessageBox>
 #include "ChirpCorrector.h"
-
-#define DOPPLERTOOL_SPEED_OF_LIGHT 299792458. // [m/s]
+#include "AmateurDSNHelpers.h"
 
 using namespace SigDigger;
 
@@ -146,7 +145,7 @@ DopplerTool::setFromVelocity(qreal velocity)
   //
 
   m_panelConfig->velocity = velocity;
-  m_currResetFreq         = -freq / DOPPLERTOOL_SPEED_OF_LIGHT * velocity;
+  m_currResetFreq         = vel2shift(freq, velocity);
 
   m_corrector->setResetFrequency(m_currResetFreq);
 }
@@ -156,7 +155,7 @@ DopplerTool::setFromShift(qreal shift)
 {
   SUFREQ freq = m_mediator->getCurrentCenterFreq();
 
-  m_panelConfig->velocity = -DOPPLERTOOL_SPEED_OF_LIGHT / freq * shift;
+  m_panelConfig->velocity = shift2vel(freq, shift);
   m_currResetFreq         = shift;
 
   m_corrector->setResetFrequency(m_currResetFreq);
@@ -175,7 +174,7 @@ DopplerTool::setFromAccel(qreal accel)
   //
 
   m_panelConfig->accel = accel;
-  m_currRate           = -freq / DOPPLERTOOL_SPEED_OF_LIGHT * accel;
+  m_currRate           = accel2drift(freq, accel);
   m_correctedRate      = m_currRate + m_panelConfig->bias;
 
   m_corrector->setChirpRate(m_correctedRate);
@@ -188,7 +187,7 @@ DopplerTool::setFromRate(qreal rate)
 
   // See setFromAccel for details
 
-  m_panelConfig->accel = -DOPPLERTOOL_SPEED_OF_LIGHT / freq * rate;
+  m_panelConfig->accel = drift2accel(freq, rate);
   m_currRate           = rate;
   m_correctedRate      = rate + m_panelConfig->bias;
 

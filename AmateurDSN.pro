@@ -35,6 +35,9 @@ SOURCES += \
     ChirpCorrector.cpp \
     DopplerTool.cpp \
     DopplerToolFactory.cpp \
+    DriftProcessor.cpp \
+    DriftTool.cpp \
+    DriftToolFactory.cpp \
     ExternalTool.cpp \
     ExternalToolFactory.cpp \
     ForwarderWidget.cpp \
@@ -59,14 +62,19 @@ target.path = $$PLUGIN_DIRECTORY
 
 FORMS += \
   DopplerTool.ui \
+  DriftTool.ui \
   ExternalTool.ui \
   ForwarderWidget.ui \
   SNRTool.ui
 
 HEADERS += \
+  AmateurDSNHelpers.h \
   ChirpCorrector.h \
   DopplerTool.h \
   DopplerToolFactory.h \
+  DriftProcessor.h \
+  DriftTool.h \
+  DriftToolFactory.h \
   ExternalTool.h \
   ExternalToolFactory.h \
   ForwarderWidget.h \

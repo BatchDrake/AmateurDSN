@@ -23,6 +23,7 @@
 #include <SNRToolFactory.h>
 #include <ExternalToolFactory.h>
 #include <DopplerToolFactory.h>
+#include <DriftToolFactory.h>
 
 SUSCAN_PLUGIN("AmateurDSN", "AmateurDSN Toolkit");
 SUSCAN_PLUGIN_VERSION(0, 1, 0);
@@ -39,6 +40,10 @@ plugin_load(Suscan::Plugin *plugin)
 
   if (!sus->registerToolWidgetFactory(
         new SigDigger::DopplerToolFactory(plugin)))
+    return false;
+
+  if (!sus->registerToolWidgetFactory(
+        new SigDigger::DriftToolFactory(plugin)))
     return false;
 
   if (!sus->registerToolWidgetFactory(
