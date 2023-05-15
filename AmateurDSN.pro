@@ -27,6 +27,10 @@ isEmpty(SIGDIGGER_PREFIX) {
   SIGDIGGER_INSTALL_HEADERS=$$SIGDIGGER_PREFIX/include/SigDigger
 }
 
+# Default rules for deployment.
+target.path = $$PLUGIN_DIRECTORY
+!isEmpty(target.path): INSTALLS += target
+
 # You can make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
@@ -56,11 +60,6 @@ unix: CONFIG += link_pkgconfig
 unix: PKGCONFIG += suscan sigutils fftw3 sndfile
 
 CONFIG += c++11
-
-
-# Default rules for deployment.
-target.path = $$PLUGIN_DIRECTORY
-!isEmpty(target.path): INSTALLS += target
 
 FORMS += \
   DopplerTool.ui \

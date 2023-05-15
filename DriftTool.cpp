@@ -23,6 +23,7 @@
 #include <QFileDialog>
 #include <QDir>
 #include <GlobalProperty.h>
+#include <QTextStream>
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 #  include <QRegularExpression>
