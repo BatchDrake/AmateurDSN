@@ -170,7 +170,6 @@ ProcessForwarder::setState(ProcessForwarderState state, QString const &msg)
             "%FFTSIZE%",
             QString::number(SCAST(int, m_fftSize)));
           arg = SigDiggerHelpers::expandGlobalProperties(arg);
-
           correctedList.append(arg);
         }
 
