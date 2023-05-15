@@ -526,7 +526,7 @@ DriftProcessor::onInspectorMessage(Suscan::InspectorMessage const &msg)
           break;
 
         case SUSCAN_ANALYZER_INSPECTOR_MSGKIND_SET_CONFIG:
-          setParamsFromConfig(m_cfgTemplate);
+          setParamsFromConfig(msg.getCConfig());
           break;
 
         default:
