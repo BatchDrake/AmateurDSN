@@ -56,13 +56,11 @@ namespace SigDigger {
     DriftProcessorState m_state           = DRIFT_PROCESSOR_IDLE;
     bool                m_settingParams   = false;
     qreal               m_desiredFeedback = .1; // Desired feedback time (seconds)
-    qreal               m_alpha;               // Used to average
     qreal               m_desiredBandwidth = 0;
     qreal               m_desiredFrequency = 0;
-    qreal               m_desiredCutOff = 0;
     qreal               m_desiredThreshold = 0.25;
-    unsigned int        m_fftSize = 8192;
-    bool                m_lock = false;
+    unsigned int        m_fftSize          = 8192;
+
 
     // These are only set if state > OPENING
     qreal               m_fullSampleRate;
@@ -72,8 +70,12 @@ namespace SigDigger {
     qreal               m_chanRBW;
 
     // These are only set during streaming
+    qreal               m_alpha;                // Used to average
+    bool                m_lock = false;
     qreal               m_trueFeedback; /* After knowing the sample rate */
     qreal               m_trueBandwidth;
+    struct timeval      m_lastLock;
+    SUSCOUNT            m_samplesPerUpdate = 0;
     SUSCOUNT            m_rawSampleCount = 0;
     SUSCOUNT            m_stabilGoal = 0;
     bool                m_stabilized = false;
@@ -87,6 +89,7 @@ namespace SigDigger {
     qreal               m_currSmoothShift = 0;
     qreal               m_currSmoothDrift = 0;
 
+    void useConfigAsTemplate(const suscan_config_t *cfg);
     void configureInspector();
     qreal adjustBandwidth(qreal desired) const;
     void disconnectAnalyzer();
@@ -96,40 +99,45 @@ namespace SigDigger {
     void setState(DriftProcessorState, QString const &);
     void resetPLL();
 
+    bool setParamsFromConfig(const suscan_config_t *cfg);
     void connectAll();
 
   public:
     explicit DriftProcessor(UIMediator *, QObject *parent = nullptr);
     virtual ~DriftProcessor() override;
 
-    DriftProcessorState state() const;
-    void  setFFTSizeHint(unsigned int);
+    // Setters
     void  setAnalyzer(Suscan::Analyzer *);
-
-    bool  isRunning() const;
-    bool  cancel();
-
-    bool hasLock() const;
-
-    void setFeedbackInterval(qreal);
     qreal setBandwidth(qreal);
+    void  setCutOff(qreal);
+    void  setFeedbackInterval(qreal);
+    void  setFFTSizeHint(unsigned int);
     void  setFrequency(qreal);
+    void  setThreshold(qreal);
 
-    qreal getMinBandwidth() const;
-    qreal getMaxBandwidth() const;
-    qreal getTrueBandwidth() const;
-    qreal getTrueFeedbackInterval() const;
-    qreal getTrueThreshold() const;
-    qreal getTrueCutOff() const;
-    qreal getEquivFs() const;
 
-    qreal getCurrShift() const;
-    qreal getCurrDrift() const;
-    bool isStable() const;
-
+    // Getters
     unsigned getDecimation() const;
+    qreal    getCurrDrift() const;
+    qreal    getCurrShift() const;
+    qreal    getEquivFs() const;
+    qreal    getMaxBandwidth() const;
+    qreal    getMinBandwidth() const;
+    quint64  getSamplesPerUpdate() const;
+    qreal    getTrueBandwidth() const;
+    qreal    getTrueCutOff() const;
+    qreal    getTrueFeedbackInterval() const;
+    qreal    getTrueThreshold() const;
 
+    struct timeval getLastLock() const;
+    bool     isRunning() const;
+    bool     isStable() const;
+    bool     hasLock() const;
+    DriftProcessorState state() const;
+
+    // Actions
     bool  startStreaming(SUFREQ, SUFLOAT);
+    bool  cancel();
 
   public slots:
     void onInspectorMessage(Suscan::InspectorMessage const &);
@@ -140,7 +148,7 @@ namespace SigDigger {
 
   signals:
     void stateChanged(int, QString const &);
-    void measurement(qreal, qreal);
+    void measurement(quint64, qreal, qreal);
     void lockState(bool);
   };
 }

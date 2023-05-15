@@ -20,10 +20,10 @@
 #define PROCESSFORWARDER_H
 
 #include <QObject>
-#include <QProcess>
 #include <Suscan/Library.h>
 #include <Suscan/Analyzer.h>
 #include <AudioFileSaver.h>
+#include "DetachableProcess.h"
 
 namespace Suscan {
   class Analyzer;
@@ -34,16 +34,6 @@ namespace Suscan {
 namespace SigDigger {
   class UIMediator;
   class AudioPlayback;
-  class DetachableProcess;
-
-  class DetachableProcess : public QProcess
-  {
-  public:
-    DetachableProcess(QObject *parent = nullptr);
-    ~DetachableProcess() override;
-
-    void detach();
-  };
 
   enum ProcessForwarderState {
     PROCESS_FORWARDER_IDLE,         // Channel closed

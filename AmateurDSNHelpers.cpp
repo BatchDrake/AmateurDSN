@@ -1,5 +1,5 @@
 //
-//    DriftToolFactory.cpp: description
+//    AmateurDSNHelpers.cpp: description
 //    Copyright (C) 2023 Gonzalo José Carracedo Carballal
 //
 //    This program is free software: you can redistribute it and/or modify
@@ -16,31 +16,18 @@
 //    License along with this program.  If not, see
 //    <http://www.gnu.org/licenses/>
 //
-#include "DriftToolFactory.h"
-#include "DriftTool.h"
+
+#include "AmateurDSNHelpers.h"
+#include <QLabel>
+#include <QFont>
 
 using namespace SigDigger;
 
-const char *
-DriftToolFactory::name() const
+void
+SigDigger::setLabelTextElided(QLabel *label, QString const &text)
 {
-  return "DriftTool";
-}
-
-ToolWidget *
-DriftToolFactory::make(UIMediator *mediator)
-{
-  return new DriftTool(this, mediator);
-}
-
-std::string
-DriftToolFactory::getTitle() const
-{
-  return "Drift Tool";
-}
-
-DriftToolFactory::DriftToolFactory(Suscan::Plugin *plugin) :
-  ToolWidgetFactory(plugin)
-{
-
+  QFontMetrics metrics(label->font());
+  int width = label->width() - 2;
+  QString clippedText = metrics.elidedText(text, Qt::ElideRight, width);
+  label->setText(clippedText);
 }

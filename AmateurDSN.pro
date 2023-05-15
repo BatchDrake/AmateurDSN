@@ -32,7 +32,9 @@ isEmpty(SIGDIGGER_PREFIX) {
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    AmateurDSNHelpers.cpp \
     ChirpCorrector.cpp \
+    DetachableProcess.cpp \
     DopplerTool.cpp \
     DopplerToolFactory.cpp \
     DriftProcessor.cpp \
@@ -70,6 +72,7 @@ FORMS += \
 HEADERS += \
   AmateurDSNHelpers.h \
   ChirpCorrector.h \
+  DetachableProcess.h \
   DopplerTool.h \
   DopplerToolFactory.h \
   DriftProcessor.h \

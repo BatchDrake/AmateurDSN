@@ -110,6 +110,7 @@ DopplerTool::DopplerTool(
           "dopplertool:reset",
           "Doppler Tool: Reset requested (boolean)",
           0.)->setAdjustable(true);
+    g_propsCreated = true;
   }
 
   m_propShift = GlobalProperty::lookupProperty("dopplertool:freq_shift");
@@ -293,9 +294,15 @@ void
 DopplerTool::refreshUi()
 {
   bool prev = enterChangeState();
+  bool block;
 
+  block = ui->velSpinBox->blockSignals(true);
   ui->velSpinBox->setValue(m_panelConfig->velocity);
+  ui->velSpinBox->blockSignals(block);
+
+  block = ui->accelSpinBox->blockSignals(true);
   ui->accelSpinBox->setValue(m_panelConfig->accel);
+  ui->accelSpinBox->blockSignals(block);
 
   ui->freqSpinBox->setValue(m_currResetFreq);
   ui->freqRateSpinBox->setValue(m_currRate);

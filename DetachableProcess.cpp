@@ -1,5 +1,5 @@
 //
-//    DriftToolFactory.cpp: description
+//    DetachableProcess.cpp: description
 //    Copyright (C) 2023 Gonzalo José Carracedo Carballal
 //
 //    This program is free software: you can redistribute it and/or modify
@@ -16,31 +16,24 @@
 //    License along with this program.  If not, see
 //    <http://www.gnu.org/licenses/>
 //
-#include "DriftToolFactory.h"
-#include "DriftTool.h"
+#include "DetachableProcess.h"
 
 using namespace SigDigger;
 
-const char *
-DriftToolFactory::name() const
+//////////////////////////////// Detachable process ////////////////////////////
+DetachableProcess::DetachableProcess(QObject *parent) : QProcess(parent)
 {
-  return "DriftTool";
+
 }
 
-ToolWidget *
-DriftToolFactory::make(UIMediator *mediator)
+DetachableProcess::~DetachableProcess()
 {
-  return new DriftTool(this, mediator);
+
 }
 
-std::string
-DriftToolFactory::getTitle() const
+void
+DetachableProcess::detach()
 {
-  return "Drift Tool";
-}
-
-DriftToolFactory::DriftToolFactory(Suscan::Plugin *plugin) :
-  ToolWidgetFactory(plugin)
-{
-
+  this->waitForStarted();
+  setProcessState(QProcess::NotRunning);
 }

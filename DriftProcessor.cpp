@@ -133,6 +133,8 @@ DriftProcessor::setState(DriftProcessorState state, QString const &msg)
         m_currSmoothDrift = 0;
         m_currSmoothShift = 0;
         m_prevSmoothShift = 0;
+        m_lock            = false;
+        m_stabilized      = false;
         break;
 
       default:
@@ -159,14 +161,8 @@ DriftProcessor::configureInspector()
 {
   Suscan::Config cfg(m_cfgTemplate);
 
-  m_rawSampleCount  = 0;
-  m_currSmoothDrift = 0;
-  m_currSmoothShift = 0;
-  m_prevSmoothShift = 0;
-  m_stabilized      = false;
-
-  // TODO: Set parameters here
   cfg.set("drift.feedback-interval", SCAST(SUFLOAT, m_desiredFeedback));
+  cfg.set("drift.lock-threshold", SCAST(SUFLOAT, m_desiredThreshold));
   m_analyzer->setInspectorConfig(m_inspHandle, cfg);
 
   this->setState(DRIFT_PROCESSOR_CONFIGURING, "Configuring params...");
@@ -288,7 +284,7 @@ DriftProcessor::getTrueCutOff() const
   if (m_state == DRIFT_PROCESSOR_STREAMING)
     return m_trueCutOff;
   else
-    return m_desiredCutOff;
+    return 0;
 }
 
 qreal
@@ -299,7 +295,6 @@ DriftProcessor::getTrueThreshold() const
   else
     return m_desiredThreshold;
 }
-
 
 qreal
 DriftProcessor::setBandwidth(qreal desired)
@@ -323,7 +318,9 @@ DriftProcessor::setFrequency(qreal fc)
 {
   m_desiredFrequency = fc;
   if (m_state > DRIFT_PROCESSOR_OPENING) {
-    m_analyzer->setInspectorFreq(m_inspHandle, m_desiredFrequency - m_analyzer->getFrequency());
+    m_analyzer->setInspectorFreq(
+          m_inspHandle,
+          m_desiredFrequency - m_analyzer->getFrequency());
   }
 }
 
@@ -340,6 +337,12 @@ DriftProcessor::getEquivFs() const
     return m_equivSampleRate;
   else
     return 0;
+}
+
+quint64
+DriftProcessor::getSamplesPerUpdate() const
+{
+  return m_samplesPerUpdate;
 }
 
 qreal
@@ -382,6 +385,81 @@ DriftProcessor::startStreaming(SUFREQ fc, SUFLOAT bw)
   return openChannel();
 }
 
+void
+DriftProcessor::useConfigAsTemplate(const suscan_config_t *cfg)
+{
+  if (m_cfgTemplate != nullptr) {
+    suscan_config_destroy(m_cfgTemplate);
+    m_cfgTemplate = nullptr;
+  }
+
+  m_cfgTemplate = suscan_config_dup(cfg);
+}
+
+bool
+DriftProcessor::setParamsFromConfig(const suscan_config_t *cfg)
+{
+  const struct suscan_field_value *cutoff, *threshold, *interval, *samps;
+
+  useConfigAsTemplate(cfg);
+
+  cutoff    = suscan_config_get_value(cfg, "drift.cutoff");
+  threshold = suscan_config_get_value(cfg, "drift.lock-threshold");
+  interval  = suscan_config_get_value(cfg, "drift.feedback-interval");
+  samps     = suscan_config_get_value(cfg, "drift.feedback-samples");
+
+  // Value is the same as requested? Go ahead
+  if (cutoff != nullptr && threshold != nullptr && interval != nullptr) {
+    m_trueCutOff       = SCAST(qreal, cutoff->as_float);
+    m_trueThreshold    = SCAST(qreal, threshold->as_float);
+    m_trueFeedback     = interval->as_float;
+    m_samplesPerUpdate = samps->as_int;
+
+    // Stabilization proportioinal to PLL cutoff
+    m_trueStabilization = 30 / m_trueCutOff;
+
+    // The goal is calculated in updates
+    m_stabilGoal     = SCAST(SUSCOUNT, ceil(m_trueStabilization / m_trueFeedback));
+
+    // Smoothing should happen at a speed proportional to the goal
+    m_alpha          = SU_SPLPF_ALPHA(m_trueStabilization / m_trueFeedback);
+
+    return true;
+  }
+
+  return false;
+}
+
+void
+DriftProcessor::setCutOff(qreal cutoff)
+{
+  Suscan::Config cfg(m_cfgTemplate);
+
+  if (m_state == DRIFT_PROCESSOR_STREAMING) {
+    cfg.set("drift.cutoff", SU_ASFLOAT(cutoff));
+    m_analyzer->setInspectorConfig(m_inspHandle, cfg);
+  }
+}
+
+void
+DriftProcessor::setThreshold(qreal threshold)
+{
+  Suscan::Config cfg(m_cfgTemplate);
+
+  m_desiredThreshold = threshold;
+
+  if (m_state == DRIFT_PROCESSOR_STREAMING) {
+    cfg.set("drift.lock-threshold", SU_ASFLOAT(threshold));
+    m_analyzer->setInspectorConfig(m_inspHandle, cfg);
+  }
+}
+
+struct timeval
+DriftProcessor::getLastLock() const
+{
+  return m_lastLock;
+}
+
 ///////////////////////////// Analyzer slots //////////////////////////////////
 void
 DriftProcessor::onInspectorMessage(Suscan::InspectorMessage const &msg)
@@ -397,36 +475,13 @@ DriftProcessor::onInspectorMessage(Suscan::InspectorMessage const &msg)
           // Check if this is the acknowledgement of a "Setting rate" message
           // If this is the case, we transition to our final state
           if (m_settingParams) {
-            const suscan_config_t *cfg = msg.getCConfig();
-            const struct suscan_field_value *cutoff, *threshold, *interval;
+            m_settingParams = false;
 
-            cutoff    = suscan_config_get_value(cfg, "drift.cutoff");
-            threshold = suscan_config_get_value(cfg, "drift.lock-threshold");
-            interval  = suscan_config_get_value(cfg, "drift.feedback-interval");
-            // Value is the same as requested? Go ahead
-            if (cutoff != nullptr && threshold != nullptr && interval != nullptr) {
-              m_settingParams = false;
-              m_trueCutOff    = SCAST(qreal, cutoff->as_float);
-              m_trueThreshold = SCAST(qreal, threshold->as_float);
-              m_trueFeedback  = interval->as_float;
-
-              // Stabilization proportioinal to PLL cutoff
-              m_trueStabilization = 30 / m_trueCutOff;
-
-              // The goal is calculated in updates
-              m_stabilGoal    = SCAST(SUSCOUNT, ceil(m_trueStabilization / m_trueFeedback));
-
-              // Smoothing should happen at a speed proportional to the goal
-              m_alpha         = SU_SPLPF_ALPHA(m_trueStabilization / m_trueFeedback);
-              m_lock          = false;
-              m_currSmoothDrift     = 0;
-              m_stabilized     = false;
-
+            if (setParamsFromConfig(msg.getCConfig())) {
               this->setState(DRIFT_PROCESSOR_STREAMING, "Channel opened");
             } else {
               // This should never happen, but just in case the server is not
               // behaving as expected
-              m_settingParams = false;
               SU_ERROR("Some of the required parameters of the drift inspector were missing\n");
               cancel();
             }
@@ -455,27 +510,27 @@ DriftProcessor::onInspectorMessage(Suscan::InspectorMessage const &msg)
           break;
       }
     } else {
-      if (msg.getKind() == SUSCAN_ANALYZER_INSPECTOR_MSGKIND_SIGNAL) {
-        if (msg.getSignalName() == "lock") {
-          m_lock = msg.getSignalValue() > 0.;
-          if (!m_lock) {
-            m_rawSampleCount = 0;
-            m_stabilized     = false;
+      switch (msg.getKind()) {
+        case SUSCAN_ANALYZER_INSPECTOR_MSGKIND_SIGNAL:
+          if (msg.getSignalName() == "lock") {
+            m_lock = msg.getSignalValue() > 0.;
+            if (!m_lock) {
+              m_rawSampleCount = 0;
+              m_stabilized     = false;
+            } else {
+              m_lastLock       = m_analyzer->getSourceTimeStamp();
+            }
+
+            emit lockState(m_lock);
           }
+          break;
 
-          emit lockState(m_lock);
-        }
-      } else if (msg.getKind() == SUSCAN_ANALYZER_INSPECTOR_MSGKIND_SET_CONFIG) {
-        if (m_cfgTemplate != nullptr) {
-          suscan_config_destroy(m_cfgTemplate);
-          m_cfgTemplate = nullptr;
-        }
+        case SUSCAN_ANALYZER_INSPECTOR_MSGKIND_SET_CONFIG:
+          setParamsFromConfig(m_cfgTemplate);
+          break;
 
-        m_cfgTemplate = suscan_config_dup(msg.getCConfig());
-        //
-        // TODO: Update params
-        //
-
+        default:
+          break;
       }
     }
   }
@@ -491,8 +546,6 @@ DriftProcessor::onInspectorSamples(Suscan::SamplesMessage const &msg)
   qreal carrier, channel;
   qreal currShift;
   qreal prevShift    = m_prevSmoothShift;
-  qreal smoothShift  = m_currSmoothShift;
-  qreal smoothDrift  = m_currSmoothDrift;
   bool reset = false;
 
   // Data delivered by the drift inspector is of the form:
@@ -521,17 +574,15 @@ DriftProcessor::onInspectorSamples(Suscan::SamplesMessage const &msg)
       // If we are stabilizing, do not put these noisy samples into the
       // smoothed variable
 
-      prevShift = smoothShift;
+      prevShift = m_currSmoothShift;
       if (!stable) {
-        smoothShift = currShift;
+        m_currSmoothShift = currShift;
       } else {
-        SU_SPLPF_FEED(smoothShift, currShift, m_alpha);
-        SU_SPLPF_FEED(smoothDrift, (smoothShift - prevShift) / m_trueFeedback, m_alpha);
+        SU_SPLPF_FEED(m_currSmoothShift, currShift, m_alpha);
+        SU_SPLPF_FEED(m_currSmoothDrift, (m_currSmoothShift - prevShift) / m_trueFeedback, m_alpha);
       }
 
-
-
-      emit measurement(carrier, channel);
+      emit measurement(sampCount, carrier, channel);
       ++sampCount;
 
       if (!stable && sampCount >= stabilizationGoal)
@@ -540,8 +591,6 @@ DriftProcessor::onInspectorSamples(Suscan::SamplesMessage const &msg)
 
     m_rawSampleCount  = sampCount;
     m_prevSmoothShift = prevShift;
-    m_currSmoothDrift = smoothDrift;
-    m_currSmoothShift = smoothShift;
     m_stabilized      = stable;
   }
 }
@@ -557,12 +606,7 @@ DriftProcessor::onOpened(Suscan::AnalyzerRequest const &req)
     // wait for the channel to provide the current configuration and
     // duplicate that one.
 
-    if (m_cfgTemplate != nullptr) {
-      suscan_config_destroy(m_cfgTemplate);
-      m_cfgTemplate = nullptr;
-    }
-
-    m_cfgTemplate = suscan_config_dup(req.config);
+    useConfigAsTemplate(req.config);
 
     if (m_cfgTemplate == nullptr) {
       m_analyzer->closeInspector(req.handle);

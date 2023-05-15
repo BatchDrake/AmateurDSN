@@ -24,6 +24,7 @@
 #include <QInputDialog>
 #include <UIMediator.h>
 #include <MainSpectrum.h>
+#include <SigDiggerHelpers.h>
 
 using namespace SigDigger;
 
@@ -334,7 +335,7 @@ ForwarderWidget::getConfig() const
 void
 ForwarderWidget::onOpen()
 {
-  QStringList argList = arguments().split(u' ', Qt::SkipEmptyParts);
+  QStringList argList;
   auto bandwidth  = m_spectrum->getBandwidth();
   auto loFreq     = m_spectrum->getLoFreq();
   auto centerFreq = m_spectrum->getCenterFreq();
@@ -342,6 +343,8 @@ ForwarderWidget::onOpen()
 
   bool bwBlocked = ui->bandwidthSpin->blockSignals(true);
   bool fcBlocked = ui->frequencySpin->blockSignals(true);
+
+  SigDiggerHelpers::tokenize(arguments(), argList);
 
   ui->bandwidthSpin->setValue(bandwidth);
   ui->frequencySpin->setValue(freq);
