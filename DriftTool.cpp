@@ -227,6 +227,12 @@ DriftTool::connectAll()
         SLOT(onRetuneChanged()));
 
   connect(
+        ui->retuneTriggerSpin,
+        SIGNAL(valueChanged(double)),
+        this,
+        SLOT(onConfigChanged()));
+
+  connect(
         ui->logFileGroup,
         SIGNAL(toggled(bool)),
         this,
@@ -285,6 +291,7 @@ DriftTool::connectAll()
         SIGNAL(textEdited(QString)),
         this,
         SLOT(onNameChanged()));
+
 }
 
 void
@@ -673,10 +680,12 @@ DriftTool::logCurrentShift(SUSCOUNT count)
 
   if (!m_haveLog) {
     if (!openLog()) {
-      ui->currLogFileEdit->setText("<i>Failed to open log file</i>");
+      ui->currLogFileEdit->setStyleSheet("font-style: italic");
+      ui->currLogFileEdit->setText("Failed to open log file");
       ui->logFileGroup->setChecked(false);
     } else {
-      setLabelTextElided(ui->currLogFileEdit, m_logFileName);
+      ui->currLogFileEdit->setStyleSheet("");
+      ui->currLogFileEdit->setText(m_logFileName);
     }
   }
 
@@ -893,6 +902,7 @@ DriftTool::onRetuneChanged()
   if (m_processor->isStable())
     refreshNamedChannel();
 
+  onConfigChanged();
   refreshUi();
 }
 
@@ -905,6 +915,7 @@ DriftTool::onToggleLog()
     if (m_haveLog) {
       closeLog();
       ui->currLogFileEdit->setText("N/A");
+      ui->currLogFileEdit->setStyleSheet("");
     }
 
   refreshUi();

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>324</width>
-    <height>555</height>
+    <height>561</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -451,12 +451,23 @@
        </widget>
       </item>
       <item row="1" column="1" colspan="2">
-       <widget class="QLabel" name="currLogFileEdit">
+       <widget class="QLineEdit" name="currLogFileEdit">
+        <property name="font">
+         <font>
+          <family>Monospace</family>
+         </font>
+        </property>
         <property name="text">
          <string>N/A</string>
         </property>
-        <property name="textFormat">
-         <enum>Qt::RichText</enum>
+        <property name="frame">
+         <bool>false</bool>
+        </property>
+        <property name="readOnly">
+         <bool>true</bool>
+        </property>
+        <property name="clearButtonEnabled">
+         <bool>false</bool>
         </property>
        </widget>
       </item>
