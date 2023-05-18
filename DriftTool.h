@@ -47,11 +47,15 @@ namespace SigDigger {
 
     bool        logToDir      = true;
     std::string logDirPath    = "";
+    std::string logFormat     = "csv";
+    int         strfStationId = 0;
 
     bool        runOnLock     = true;
     std::string programPath   = "/usr/bin/notify-send";
     std::string programArgs   =
         "-e -a AmateurDSN \"%drifttool:name%\" \"Lock acquired on <b>%drifttool:name%</b> (carrier: %drifttool:freq% Hz)\"";
+
+
 
     // Overriden methods
     void deserialize(Suscan::Object const &conf) override;
@@ -73,6 +77,7 @@ namespace SigDigger {
     QFile   m_logFile;
     QString m_logFileName;
     QString m_logFilePath;
+    bool    m_loggingSTRF = false;
     bool    m_haveLog = false;
 
 

@@ -166,6 +166,7 @@ DriftTool::DriftTool(
     g_propsCreated = true;
   }
 
+  ui->stationIdEdit->setValidator(new QIntValidator(0, 9999, this));
   refreshUi();
   connectAll();
 }
@@ -237,6 +238,19 @@ DriftTool::connectAll()
         SIGNAL(toggled(bool)),
         this,
         SLOT(onToggleLog()));
+
+  connect(
+        ui->formatCombo,
+        SIGNAL(activated(int)),
+        this,
+        SLOT(onConfigChanged()));
+
+  connect(
+        ui->stationIdEdit,
+        SIGNAL(textEdited(QString)),
+        this,
+        SLOT(onConfigChanged()));
+
 
   connect(
         ui->runCommandGroup,
@@ -394,7 +408,7 @@ DriftTool::refreshUi()
   bool running   = m_processor->isRunning();
   bool canRun    = m_analyzer != nullptr;
   bool canAdjust = m_processor->state() >= DRIFT_PROCESSOR_CONFIGURING;
-  bool saveLogs  = !(ui->logFileGroup->isChecked()    && canAdjust);
+  bool saveLogs  = ui->logFileGroup->isChecked() && !canAdjust;
   bool runCmd    = !(ui->runCommandGroup->isChecked() && canAdjust);
 
   ui->frequencySpin->setEnabled(canAdjust);
@@ -414,8 +428,18 @@ DriftTool::refreshUi()
   ui->lockLed->setOn(m_processor->hasLock());
   ui->stableLed->setOn(m_processor->isStable());
 
+
   ui->runCommandLayout->setEnabled(runCmd);
-  ui->logFileGroupLayout->setEnabled(saveLogs);
+
+  /*if (saveLogs)
+    ui->stationIdEdit->setEnabled(ui->formatCombo->currentIndex() == 1);
+  else
+    ui->stationIdEdit->setEnabled(false);*/
+
+  ui->logDirBrowseButton->setEnabled(saveLogs);
+  ui->logDirEdit->setEnabled(saveLogs);
+  ui->stationIdEdit->setEnabled((ui->formatCombo->currentIndex() == 1) && saveLogs);
+  ui->formatCombo->setEnabled(saveLogs);
 }
 
 // Configuration methods
@@ -450,6 +474,10 @@ DriftTool::applyConfig()
         ui->programArgumentsEdit,
         setText(QString::fromStdString(m_panelConfig->programArgs)));
 
+  BLOCKSIG(
+        ui->stationIdEdit,
+        setText(QString::asprintf("%04d", m_panelConfig->strfStationId)));
+
   // Spinboxes
   BLOCKSIG(
         ui->refFreqSpin,
@@ -475,6 +503,13 @@ DriftTool::applyConfig()
   BLOCKSIG(
         ui->runCommandGroup,
         setChecked(m_panelConfig->runOnLock));
+
+  // Other
+  int index = 0;
+  if (QString::fromStdString(m_panelConfig->logFormat).toLower() == "strf")
+    index = 1;
+
+  BLOCKSIG(ui->formatCombo, setCurrentIndex(index));
 
   // Apply to objects
   m_processor->setThreshold(m_panelConfig->lockThres);
@@ -554,6 +589,7 @@ DriftTool::openLog()
   struct tm parts;
   QString file;
   QString fullPath;
+  QString extension;
   QString vesselName = QString::fromStdString(m_panelConfig->probeName);
   SUSCOUNT counter = 0;
 
@@ -569,16 +605,24 @@ DriftTool::openLog()
     vesselName.replace(QRegExp("[^a-zA-Z\\d]"), "_");
   }
 
+  if (QString::fromStdString(m_panelConfig->logFormat).toLower() == "strf") {
+    extension = "dat";
+    m_loggingSTRF = true;
+  } else {
+    extension = "log";
+    m_loggingSTRF = false;
+  }
+
   do {
     file = vesselName + QString::asprintf(
-          "_%04d%02d%02d_%02d%02d%02d_%04ld.log",
+          "_%04d%02d%02d_%02d%02d%02d_%04ld.",
           parts.tm_year + 1900,
           parts.tm_mon + 1,
           parts.tm_mday,
           parts.tm_hour,
           parts.tm_min,
           parts.tm_sec,
-          ++counter);
+          ++counter) + extension;
     fullPath = QString::fromStdString(m_panelConfig->logDirPath) + "/" + file;
   } while (QFile::exists(fullPath));
 
@@ -617,14 +661,27 @@ DriftTool::logMeasurement(
     qreal t0    = start.tv_sec + 1e-6 * start.tv_usec;
     qreal t     = (m_processor->getSamplesPerUpdate() * num) / m_processor->getEquivFs();
     qreal mjd   = unix2mjd(t0 + t);
-    QString mjdStr = QString::asprintf("%.7lf", mjd);
-    log
-        << mjdStr << ","
-        << num << ","
-        << SCAST(int, m_processor->hasLock()) << ","
-        << SCAST(int, m_processor->isStable()) << ","
-        << QString::asprintf("%.12le", full) << ","
-        << QString::asprintf("%.12le", rel) << "\n";
+
+
+    if (m_loggingSTRF) {
+      // STRF
+      log
+          << QString::asprintf("%12.6lf", mjd) << "\t"
+          << QString::asprintf("%14.3lf", full) << "\t"
+          << QString::asprintf("%8.3lf", 0.) << "\t" // Placeholder until we have SNR
+          << QString::asprintf("%04d", m_panelConfig->strfStationId)
+          << "\n";
+    } else {
+      QString mjdStr = QString::asprintf("%.7lf", mjd);
+      // CSV
+      log
+          << QString::asprintf("%.7lf", mjd) << ","
+          << num << ","
+          << SCAST(int, m_processor->hasLock()) << ","
+          << SCAST(int, m_processor->isStable()) << ","
+          << QString::asprintf("%.12le", full) << ","
+          << QString::asprintf("%.12le", rel) << "\n";
+    }
   }
 }
 
@@ -984,11 +1041,23 @@ DriftTool::onNameChanged()
 void
 DriftTool::onConfigChanged()
 {
+  bool okay;
+
   // Edit boxes
-  m_panelConfig->probeName   = ui->nameEdit->text().toStdString();
-  m_panelConfig->logDirPath  = ui->logDirEdit->text().toStdString();
-  m_panelConfig->programPath = ui->programPathEdit->text().toStdString();
-  m_panelConfig->programArgs = ui->programArgumentsEdit->text().toStdString();
+  m_panelConfig->probeName     = ui->nameEdit->text().toStdString();
+  m_panelConfig->logDirPath    = ui->logDirEdit->text().toStdString();
+  m_panelConfig->programPath   = ui->programPathEdit->text().toStdString();
+  m_panelConfig->programArgs   = ui->programArgumentsEdit->text().toStdString();
+
+  int value = ui->stationIdEdit->text().toInt(&okay);
+  if (okay) {
+    m_panelConfig->strfStationId = value;
+  } else {
+    value = m_panelConfig->strfStationId;
+    // UI state
+    BLOCKSIG(ui->stationIdEdit, setText(QString::asprintf("%04d", value)));
+  }
+
 
   // Spinboxes
   m_panelConfig->reference     = ui->refFreqSpin->value();
@@ -1000,8 +1069,16 @@ DriftTool::onConfigChanged()
   m_panelConfig->logToDir  = ui->logFileGroup->isChecked();
   m_panelConfig->runOnLock = ui->runCommandGroup->isChecked();
 
+  // Other
+  m_panelConfig->logFormat = ui->formatCombo->currentIndex() == 0
+      ? "csv"
+      : "strf";
+
+  // Properties
   m_propName->setValue(QString::fromStdString(m_panelConfig->probeName));
   m_propRef->setValue(m_panelConfig->reference);
+
+  refreshUi();
 }
 
 void

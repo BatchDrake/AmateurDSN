@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>324</width>
-    <height>561</height>
+    <height>611</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -237,9 +237,6 @@
              <height>16</height>
             </size>
            </property>
-           <property name="color">
-            <enum>LED::Red</enum>
-           </property>
            <property name="on">
             <bool>false</bool>
            </property>
@@ -410,7 +407,7 @@
      <property name="checkable">
       <bool>true</bool>
      </property>
-     <layout class="QGridLayout" name="logFileGroupLayout">
+     <layout class="QGridLayout">
       <property name="leftMargin">
        <number>6</number>
       </property>
@@ -426,13 +423,6 @@
       <property name="spacing">
        <number>3</number>
       </property>
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_13">
-        <property name="text">
-         <string>Directory</string>
-        </property>
-       </widget>
-      </item>
       <item row="0" column="1">
        <widget class="QLineEdit" name="logDirEdit"/>
       </item>
@@ -440,13 +430,6 @@
        <widget class="QPushButton" name="logDirBrowseButton">
         <property name="text">
          <string>&amp;Browse...</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_14">
-        <property name="text">
-         <string>Current</string>
         </property>
        </widget>
       </item>
@@ -468,6 +451,79 @@
         </property>
         <property name="clearButtonEnabled">
          <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_17">
+        <property name="text">
+         <string>Format</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_13">
+        <property name="text">
+         <string>Directory</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1" colspan="2">
+       <widget class="QComboBox" name="formatCombo">
+        <item>
+         <property name="text">
+          <string>Native CSV files</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>STRF DAT file</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_14">
+        <property name="text">
+         <string>Current</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="label_20">
+        <property name="text">
+         <string>Station ID</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1" colspan="2">
+       <widget class="QLineEdit" name="stationIdEdit">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="text">
+         <string>0000</string>
+        </property>
+        <property name="maxLength">
+         <number>4</number>
+        </property>
+        <property name="placeholderText">
+         <string/>
         </property>
        </widget>
       </item>
