@@ -100,9 +100,6 @@ DriftTool::DriftTool(
   m_mediator  = mediator;
   m_spectrum  = mediator->getMainSpectrum();
 
-  ui->pllBwSpin->setAutoUnitMultiplierEnabled(true);
-  ui->pllBwSpin->setSubMultiplesAllowed(true);
-
   setProperty("collapsed", m_panelConfig->collapsed);
 
   if (!g_propsCreated) {

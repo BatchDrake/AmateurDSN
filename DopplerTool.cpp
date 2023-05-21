@@ -293,31 +293,21 @@ DopplerTool::connectAll()
 void
 DopplerTool::refreshUi()
 {
-  bool prev = enterChangeState();
-  bool block;
+  BLOCKSIG(ui->velSpinBox, setValue(m_panelConfig->velocity));
+  BLOCKSIG(ui->accelSpinBox, setValue(m_panelConfig->accel));
 
-  block = ui->velSpinBox->blockSignals(true);
-  ui->velSpinBox->setValue(m_panelConfig->velocity);
-  ui->velSpinBox->blockSignals(block);
+  BLOCKSIG(ui->freqSpinBox, setValue(m_currResetFreq));
+  BLOCKSIG(ui->freqRateSpinBox, setValue(m_currRate));
+  BLOCKSIG(ui->rateBiasSpinBox, setValue(m_panelConfig->bias));
 
-  block = ui->accelSpinBox->blockSignals(true);
-  ui->accelSpinBox->setValue(m_panelConfig->accel);
-  ui->accelSpinBox->blockSignals(block);
+  BLOCKSIG(ui->enableButton, setChecked(m_panelConfig->enabled));
 
-  ui->freqSpinBox->setValue(m_currResetFreq);
-  ui->freqRateSpinBox->setValue(m_currRate);
-  ui->rateBiasSpinBox->setValue(m_panelConfig->bias);
+  BLOCKSIG(m_propShift, setValueSilent(m_currResetFreq));
+  BLOCKSIG(m_propRate, setValueSilent(m_currRate));
+  BLOCKSIG(m_propBias, setValueSilent(m_panelConfig->bias));
 
-  ui->enableButton->setChecked(m_panelConfig->enabled);
-
-  m_propShift->setValueSilent(m_currResetFreq);
-  m_propRate->setValueSilent(m_currRate);
-  m_propBias->setValueSilent(m_panelConfig->bias);
-
-  m_propAccel->setValueSilent(m_panelConfig->accel);
-  m_propVel->setValueSilent(m_panelConfig->velocity);
-
-  leaveChangeState(prev);
+  BLOCKSIG(m_propAccel, setValueSilent(m_panelConfig->accel));
+  BLOCKSIG(m_propVel, setValueSilent(m_panelConfig->velocity));
 }
 
 void
@@ -326,33 +316,6 @@ DopplerTool::applySpectrumState()
   setFromVelocity(m_panelConfig->velocity);
   setFromAccel(m_panelConfig->accel);
   refreshUi();
-}
-
-bool
-DopplerTool::enterChangeState()
-{
-  bool blocked;
-
-  blocked =
-         ui->freqSpinBox->blockSignals(true)
-      && ui->freqRateSpinBox->blockSignals(true)
-      && ui->rateBiasSpinBox->blockSignals(true)
-      && ui->velSpinBox->blockSignals(true)
-      && ui->accelSpinBox->blockSignals(true)
-      && ui->enableButton->blockSignals(true);
-
-  return blocked;
-}
-
-void
-DopplerTool::leaveChangeState(bool state)
-{
-  ui->freqSpinBox->blockSignals(state);
-  ui->accelSpinBox->blockSignals(state);
-  ui->velSpinBox->blockSignals(state);
-  ui->freqRateSpinBox->blockSignals(state);
-  ui->rateBiasSpinBox->blockSignals(state);
-  ui->enableButton->blockSignals(state);
 }
 
 // Configuration methods
@@ -461,6 +424,9 @@ DopplerTool::onAccelChanged()
 void
 DopplerTool::onShiftChanged()
 {
+  QObject *obj = QObject::sender();
+  auto string = obj->objectName().toStdString();
+
   setFromShift(ui->freqSpinBox->value());
   refreshUi();
 }

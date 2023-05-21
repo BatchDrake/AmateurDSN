@@ -85,9 +85,6 @@ namespace SigDigger {
     void setFromAccel(qreal);
     void setFromRate(qreal);
 
-    bool enterChangeState();
-    void leaveChangeState(bool);
-
   public:
     explicit DopplerTool(DopplerToolFactory *, UIMediator *, QWidget *parent = nullptr);
     ~DopplerTool() override;
