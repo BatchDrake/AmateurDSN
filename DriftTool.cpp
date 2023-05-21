@@ -43,23 +43,6 @@
 #define STORE(field) obj.set(STRINGFY(field), this->field)
 #define LOAD(field) this->field = conf.get(STRINGFY(field), this->field)
 
-#define BLOCKSIG_BEGIN(object)                   \
-  do {                                           \
-    QObject *obj = object;                       \
-    bool blocked = (object)->blockSignals(true)
-
-#define BLOCKSIG_END()                           \
-    obj->blockSignals(blocked);                  \
-  } while (false)
-
-#define BLOCKSIG(object, op)                     \
-  do {                                           \
-    bool blocked = (object)->blockSignals(true); \
-    (object)->op;                                \
-    (object)->blockSignals(blocked);             \
-  } while (false)
-
-
 using namespace SigDigger;
 
 bool DriftTool::g_propsCreated = false;
