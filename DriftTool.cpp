@@ -143,6 +143,9 @@ DriftTool::DriftTool(
           "Drift Tool: current acceleration [m/s^2]",
           0.);
 
+    m_propName->setAdjustable(true);
+    m_propRef->setAdjustable(true);
+
     g_propsCreated = true;
   }
 
@@ -278,14 +281,25 @@ DriftTool::connectAll()
         ui->programPathEdit,
         SIGNAL(textEdited(QString)),
         this,
-        SLOT(onNameChanged()));
+        SLOT(onConfigChanged()));
 
   connect(
         ui->programArgumentsEdit,
         SIGNAL(textEdited(QString)),
         this,
-        SLOT(onNameChanged()));
+        SLOT(onConfigChanged()));
 
+  connect(
+        m_propName,
+        SIGNAL(changed()),
+        this,
+        SLOT(onPropNameChanged()));
+
+  connect(
+        m_propRef,
+        SIGNAL(changed()),
+        this,
+        SLOT(onPropRefChanged()));
 }
 
 void
@@ -495,8 +509,8 @@ DriftTool::applyConfig()
   m_processor->setThreshold(m_panelConfig->lockThres);
 
   // Apply global properties
-  m_propName->setValue(QString::fromStdString(m_panelConfig->probeName));
-  m_propRef->setValue(m_panelConfig->reference);
+  m_propName->setValueSilent(QString::fromStdString(m_panelConfig->probeName));
+  m_propRef->setValueSilent(m_panelConfig->reference);
 
   refreshUi();
 }
@@ -1055,8 +1069,8 @@ DriftTool::onConfigChanged()
       : "strf";
 
   // Properties
-  m_propName->setValue(QString::fromStdString(m_panelConfig->probeName));
-  m_propRef->setValue(m_panelConfig->reference);
+  m_propName->setValueSilent(QString::fromStdString(m_panelConfig->probeName));
+  m_propRef->setValueSilent(m_panelConfig->reference);
 
   refreshUi();
 }
@@ -1110,3 +1124,19 @@ DriftTool::onProcessFinished(int code, QProcess::ExitStatus status)
   else if (code != 0)
     SU_ERROR("Lock notifier program finished with error status %d\n", code);
 }
+
+void
+DriftTool::onPropNameChanged()
+{
+  m_panelConfig->probeName = m_propName->value<QString>().toStdString();
+  BLOCKSIG(ui->nameEdit, setText(QString::fromStdString(m_panelConfig->probeName)));
+  refreshNamedChannel();
+}
+
+void
+DriftTool::onPropRefChanged()
+{
+  m_panelConfig->reference = m_propRef->value<double>();
+  BLOCKSIG(ui->refFreqSpin, setValue(m_panelConfig->reference));
+}
+

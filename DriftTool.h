@@ -152,6 +152,9 @@ namespace SigDigger {
     void onProcessError(QProcess::ProcessError error);
     void onProcessFinished(int code, QProcess::ExitStatus status);
 
+    void onPropNameChanged();
+    void onPropRefChanged();
+
   private:
     Ui::DriftTool *ui;
   };
