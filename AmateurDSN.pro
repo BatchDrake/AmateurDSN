@@ -57,7 +57,7 @@ SOURCES += \
 INCLUDEPATH += $$SUWIDGETS_INSTALL_HEADERS $$SIGDIGGER_INSTALL_HEADERS
 
 unix: CONFIG += link_pkgconfig
-unix: PKGCONFIG += suscan sigutils fftw3 sndfile
+unix: PKGCONFIG += suscan sigutils fftw3 sndfile volk
 
 CONFIG += c++11
 
