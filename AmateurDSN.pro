@@ -59,6 +59,8 @@ INCLUDEPATH += $$SUWIDGETS_INSTALL_HEADERS $$SIGDIGGER_INSTALL_HEADERS
 unix: CONFIG += link_pkgconfig
 unix: PKGCONFIG += suscan sigutils fftw3 sndfile volk
 
+darwin: QMAKE_LFLAGS += -undefined dynamic_lookup
+
 CONFIG += c++11
 
 FORMS += \
