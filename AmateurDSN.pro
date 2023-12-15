@@ -60,6 +60,7 @@ unix: CONFIG += link_pkgconfig
 unix: PKGCONFIG += suscan sigutils fftw3 sndfile volk
 
 darwin: QMAKE_LFLAGS += -undefined dynamic_lookup
+darwin: LIBS += -lsuwidgets
 
 CONFIG += c++11
 
