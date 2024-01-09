@@ -6,6 +6,8 @@ DEFINES += AMATEURDSN_LIBRARY
 CONFIG += c++11
 CONFIG += unversioned_libname unversioned_soname
 
+unix: QMAKE_LFLAGS += -rdynamic
+
 isEmpty(PLUGIN_DIRECTORY) {
   _HOME = $$(HOME)
   isEmpty(_HOME) {
