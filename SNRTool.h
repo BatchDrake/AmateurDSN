@@ -41,6 +41,7 @@ namespace SigDigger {
     bool collapsed = false;
     bool normalize = true;
     float refbw = 1;
+    bool bpe = false;
 
     // Overriden methods
     void deserialize(Suscan::Object const &conf) override;
@@ -140,6 +141,7 @@ namespace SigDigger {
 
     void onTauChanged(qreal, qreal);
     void onConfigChanged();
+    void onResetBpe();
 
     void onCopyAll();
 

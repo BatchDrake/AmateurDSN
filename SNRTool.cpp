@@ -40,6 +40,7 @@ SNRToolConfig::deserialize(Suscan::Object const &conf)
   LOAD(normalize);
   LOAD(tau);
   LOAD(refbw);
+  LOAD(bpe);
 }
 
 Suscan::Object &&
@@ -53,6 +54,7 @@ SNRToolConfig::serialize()
   STORE(normalize);
   STORE(tau);
   STORE(refbw);
+  STORE(bpe);
 
   return persist(obj);
 }
@@ -215,6 +217,18 @@ SNRTool::connectAll()
         SLOT(onConfigChanged()));
 
   connect(
+        ui->displayBayesCheck,
+        SIGNAL(toggled(bool)),
+        this,
+        SLOT(onConfigChanged()));
+
+  connect(
+        ui->resetBPEButton,
+        SIGNAL(clicked(bool)),
+        this,
+        SLOT(onResetBpe()));
+
+  connect(
         ui->copyButton,
         SIGNAL(clicked(bool)),
         this,
@@ -245,6 +259,16 @@ SNRTool::refreshUi()
   ui->nContButton->setEnabled(!nRunning && canRun);
   ui->nSingleButton->setEnabled(!nRunning && canRun);
   ui->nResetButton->setEnabled(nRunning);
+
+  ui->sigmaNoiseLabel->setVisible(m_panelConfig->bpe);
+  ui->sigmaNoiseModeLabel->setVisible(m_panelConfig->bpe);
+  ui->sigmaNoiseModeDbLabel->setVisible(m_panelConfig->bpe);
+
+  ui->sigmaSignalNoiseLabel->setVisible(m_panelConfig->bpe);
+  ui->sigmaSignalNoiseModeLabel->setVisible(m_panelConfig->bpe);
+  ui->sigmaSignalNoiseModeDbLabel->setVisible(m_panelConfig->bpe);
+
+  ui->resetBPEButton->setEnabled(m_panelConfig->bpe);
 }
 
 // Configuration methods
@@ -266,6 +290,7 @@ SNRTool::applyConfig()
 
   ui->refBwSpin->setValue(m_panelConfig->refbw);
   ui->normalizeCheck->setChecked(m_panelConfig->normalize);
+  ui->displayBayesCheck->setChecked(m_panelConfig->bpe);
 
   m_signalNoiseProcessor->setTau(m_panelConfig->tau);
   m_noiseProcessor->setTau(m_panelConfig->tau);
@@ -475,39 +500,109 @@ SNRTool::refreshMeasurements()
   qreal noise;
   QString units;
   const char *dbUnits;
+  bool bpe = ui->displayBayesCheck->isChecked();
+  qreal snScale, nScale;
 
   if (ui->normalizeCheck->isChecked()) {
     signalNoise = m_currentSignalNoiseDensity;
     noise       = m_currentNoiseDensity;
+    snScale     = 1 / m_signalNoiseProcessor->getTrueBandwidth();
+    nScale      = 1 / m_noiseProcessor->getTrueBandwidth();
     units       = "pu/Hz";
     dbUnits     = "dBpu/Hz";
   } else {
     signalNoise = m_currentSignalNoise;
     noise       = m_currentNoise;
+    snScale     = 1.;
+    nScale      = 1.;
     units       = "pu";
     dbUnits     = "dBpu";
   }
 
-  if (signalNoise <= 0) {
-    ui->spnLabel->setText("N/A");
-    ui->spnDbLabel->setText("N/A");
+  // Display noise
+
+  if (bpe) {
+    if (m_signalNoiseProcessor->haveBpe()) {
+      qreal mode  = m_signalNoiseProcessor->powerModeBpe() * snScale;
+      qreal delta = m_signalNoiseProcessor->powerDeltaBpe() * snScale;
+
+      qreal modeDb       = SU_POWER_DB_RAW(SU_ASFLOAT(mode));
+      qreal modePlusDDb  = SU_POWER_DB_RAW(SU_ASFLOAT(mode + delta));
+      qreal deltaDb      = modePlusDDb - modeDb;
+
+      QString strMode    = SuWidgetsHelpers::formatQuantity(mode, 3, units);
+      QString strDelta   = SuWidgetsHelpers::formatQuantity(delta, 3, units);
+
+      QString strModeDb  = QString::asprintf("%+6.3f %s", modeDb, dbUnits);
+      QString strDeltaDb = QString::asprintf("%6.3f %s", deltaDb, dbUnits);
+
+      ui->spnLabel->setText(strMode);
+      ui->spnDbLabel->setText(strModeDb);
+      ui->sigmaSignalNoiseModeLabel->setText(strDelta);
+      ui->sigmaSignalNoiseModeDbLabel->setText(strDeltaDb);
+
+      signalNoise = mode;
+    } else {
+      ui->spnLabel->setText("N/A");
+      ui->spnDbLabel->setText("N/A");
+      ui->sigmaSignalNoiseModeLabel->setText("N/A");
+      ui->sigmaSignalNoiseModeDbLabel->setText("N/A");
+
+      signalNoise = 0;
+    }
   } else {
-    ui->spnLabel->setText(
-          SuWidgetsHelpers::formatQuantity(signalNoise, 3, units));
-    ui->spnDbLabel->setText(
-          QString::asprintf("%+6.3f %s",
-            SU_POWER_DB_RAW(SU_ASFLOAT(signalNoise)), dbUnits));
+    if (signalNoise <= 0) {
+      ui->spnLabel->setText("N/A");
+      ui->spnDbLabel->setText("N/A");
+    } else {
+      ui->spnLabel->setText(
+            SuWidgetsHelpers::formatQuantity(signalNoise, 3, units));
+      ui->spnDbLabel->setText(
+            QString::asprintf("%+6.3f %s",
+              SU_POWER_DB_RAW(SU_ASFLOAT(signalNoise)), dbUnits));
+    }
   }
 
-  if (noise <= 0) {
-    ui->nLabel->setText("N/A");
-    ui->nDbLabel->setText("N/A");
+  if (bpe) {
+    if (m_noiseProcessor->haveBpe()) {
+      qreal mode  = m_noiseProcessor->powerModeBpe() * nScale;
+      qreal delta = m_noiseProcessor->powerDeltaBpe() * nScale;
+
+      qreal modeDb       = SU_POWER_DB_RAW(SU_ASFLOAT(mode));
+      qreal modePlusDDb  = SU_POWER_DB_RAW(SU_ASFLOAT(mode + delta));
+      qreal deltaDb      = modePlusDDb - modeDb;
+
+      QString strMode    = SuWidgetsHelpers::formatQuantity(mode, 3, units);
+      QString strDelta   = SuWidgetsHelpers::formatQuantity(delta, 3, units);
+
+      QString strModeDb  = QString::asprintf("%+6.3f %s", modeDb, dbUnits);
+      QString strDeltaDb = QString::asprintf("%6.3f %s", deltaDb, dbUnits);
+
+      ui->nLabel->setText(strMode);
+      ui->nDbLabel->setText(strModeDb);
+      ui->sigmaNoiseModeLabel->setText(strDelta);
+      ui->sigmaNoiseModeDbLabel->setText(strDeltaDb);
+
+      noise = mode;
+    } else {
+      ui->nLabel->setText("N/A");
+      ui->nDbLabel->setText("N/A");
+      ui->sigmaNoiseModeLabel->setText("N/A");
+      ui->sigmaNoiseModeDbLabel->setText("N/A");
+
+      noise = -1;
+    }
   } else {
-    ui->nLabel->setText(
-          SuWidgetsHelpers::formatQuantity(noise, 3, units));
-    ui->nDbLabel->setText(
-          QString::asprintf("%+6.3f %s",
-            SU_POWER_DB_RAW(SU_ASFLOAT(noise)), dbUnits));
+    if (noise <= 0) {
+      ui->nLabel->setText("N/A");
+      ui->nDbLabel->setText("N/A");
+    } else {
+      ui->nLabel->setText(
+            SuWidgetsHelpers::formatQuantity(noise, 3, units));
+      ui->nDbLabel->setText(
+            QString::asprintf("%+6.3f %s",
+              SU_POWER_DB_RAW(SU_ASFLOAT(noise)), dbUnits));
+    }
   }
 
   snnr = signalNoise / noise;
@@ -816,6 +911,11 @@ SNRTool::onConfigChanged()
   m_panelConfig->normalize = ui->normalizeCheck->isChecked();
   m_panelConfig->refbw     = ui->refBwSpin->value();
 
+  if (m_panelConfig->bpe != ui->displayBayesCheck->isChecked()) {
+    m_panelConfig->bpe       = ui->displayBayesCheck->isChecked();
+    refreshUi();
+  }
+
   refreshMeasurements();
 }
 
@@ -824,3 +924,12 @@ SNRTool::onCopyAll()
 {
   QApplication::clipboard()->setText(m_clipBoardText);
 }
+
+void
+SNRTool::onResetBpe()
+{
+  m_signalNoiseProcessor->resetBpe();
+  m_noiseProcessor->resetBpe();
+}
+
+

@@ -23,6 +23,7 @@
 #include <Suscan/Library.h>
 #include <Suscan/Analyzer.h>
 #include <AudioFileSaver.h>
+#include <suscan/util/bpe.h>
 
 namespace Suscan {
   class Analyzer;
@@ -60,8 +61,14 @@ namespace SigDigger {
     qreal               m_desiredTau = 1; // Desired integration time (seconds)
     qreal               m_desiredFeedback = 0.1; // Desired feedback time (seconds)
     qreal               m_alpha;
+    SUSCOUNT            m_kInt;
     qreal               m_desiredBandwidth = 0;
     qreal               m_desiredFrequency = 0;
+
+    bool                m_haveBpe = false;
+    suscan_bpe_t        m_bpe;
+    bool                m_haveScaling = false;
+    qreal               m_bpeScaling;
 
     unsigned int        m_fftSize = 8192;
 
@@ -100,6 +107,11 @@ namespace SigDigger {
 
     bool  isRunning() const;
     bool  cancel();
+
+    bool haveBpe() const;
+    void  resetBpe();
+    qreal powerModeBpe();
+    qreal powerDeltaBpe();
 
     void setTau(qreal);
     void setFeedbackInterval(qreal);

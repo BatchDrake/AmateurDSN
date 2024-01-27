@@ -111,6 +111,8 @@ PowerProcessor::setState(PowerProcessorState state, QString const &msg)
   if (m_state != state) {
     m_state = state;
 
+    m_haveBpe = false;
+
     switch (state) {
       case POWER_PROCESSOR_IDLE:
         if (m_inspHandle != -1)
@@ -133,6 +135,9 @@ PowerProcessor::setState(PowerProcessorState state, QString const &msg)
       case POWER_PROCESSOR_STREAMING:
         m_rawSampleCount = 0;
         m_lastMeasurement = 0;
+        suscan_bpe_init(&m_bpe);
+        m_haveBpe = true;
+
         break;
 
       default:
@@ -157,6 +162,7 @@ PowerProcessor::configureInspector()
     samples           = SCAST(unsigned, ceil(m_desiredFeedback * m_equivSampleRate));
     m_trueFeedback    = samples / m_equivSampleRate;
     m_alpha           = SCAST(qreal, SU_SPLPF_ALPHA(SU_ASFLOAT(m_desiredTau / m_trueFeedback)));
+    m_kInt            = SCAST(SUSCOUNT, (2. - m_alpha) / m_alpha);
     m_trueTau         = m_desiredTau;
     m_rawSampleCount  = 0;
   }
@@ -164,6 +170,9 @@ PowerProcessor::configureInspector()
   m_inspIntSamples = samples;
 
   cfg.set("power.integrate-samples", SCAST(uint64_t, m_inspIntSamples));
+
+  // Now we have no scaling
+  m_haveScaling = false;
   m_analyzer->setInspectorConfig(m_inspHandle, cfg);
 
   this->setState(POWER_PROCESSOR_CONFIGURING, "Configuring params...");
@@ -356,6 +365,30 @@ PowerProcessor::oneShot(SUFREQ fc, SUFLOAT bw)
 }
 
 bool
+PowerProcessor::haveBpe() const
+{
+  return m_haveBpe && m_haveScaling && m_rawSampleCount > 0;
+}
+
+void
+PowerProcessor::resetBpe()
+{
+  suscan_bpe_init(&m_bpe);
+}
+
+qreal
+PowerProcessor::powerModeBpe()
+{
+  return suscan_bpe_get_power(&m_bpe);
+}
+
+qreal
+PowerProcessor::powerDeltaBpe()
+{
+  return suscan_bpe_get_dispersion(&m_bpe);
+}
+
+bool
 PowerProcessor::startStreaming(SUFREQ fc, SUFLOAT bw)
 {
   if (this->isRunning())
@@ -377,58 +410,66 @@ PowerProcessor::onInspectorMessage(Suscan::InspectorMessage const &msg)
 {
   bool configuring = m_state == POWER_PROCESSOR_CONFIGURING;
 
-  if (configuring && msg.getInspectorId() == m_inspId) {
+  if (msg.getInspectorId() == m_inspId) {
     // This refers to us!
+    if (configuring) {
+      switch (msg.getKind()) {
+        case SUSCAN_ANALYZER_INSPECTOR_MSGKIND_SET_CONFIG:
+          // Check if this is the acknowledgement of a "Setting rate" message
+          // If this is the case, we transition to our final state
+          if (m_settingRate) {
+            const suscan_config_t *cfg = msg.getCConfig();
+            const struct suscan_field_value *value;
 
-    switch (msg.getKind()) {
-      case SUSCAN_ANALYZER_INSPECTOR_MSGKIND_SET_CONFIG:
-        // Check if this is the acknowledgement of a "Setting rate" message
-        // If this is the case, we transition to our final state
-        if (m_settingRate) {
-          const suscan_config_t *cfg = msg.getCConfig();
-          const struct suscan_field_value *value;
+            value = suscan_config_get_value(cfg, "power.integrate-samples");
 
-          value = suscan_config_get_value(cfg, "power.integrate-samples");
+            // Value is the same as requested? Go ahead
+            if (value != nullptr) {
+              if (m_inspIntSamples == value->as_int) {
+                m_settingRate = false;
 
-          // Value is the same as requested? Go ahead
-          if (value != nullptr) {
-            if (m_inspIntSamples == value->as_int) {
-              m_settingRate = false;
-
-              if (m_oneShot) {
-                this->setState(POWER_PROCESSOR_MEASURING, "Measuring power...");
-              } else {
-                this->setState(POWER_PROCESSOR_STREAMING, "Channel opened");
+                if (m_oneShot) {
+                  this->setState(POWER_PROCESSOR_MEASURING, "Measuring power...");
+                } else {
+                  this->setState(POWER_PROCESSOR_STREAMING, "Channel opened");
+                }
               }
+            } else {
+              // This should never happen, but just in case the server is not
+              // behaving as expected
+              m_settingRate = false;
             }
-          } else {
-            // This should never happen, but just in case the server is not
-            // behaving as expected
-            m_settingRate = false;
           }
-        }
 
-        break;
+          break;
 
-      case SUSCAN_ANALYZER_INSPECTOR_MSGKIND_CLOSE:
-        m_inspHandle = -1;
-        this->setState(POWER_PROCESSOR_IDLE, "Inspector closed");
-        break;
+        case SUSCAN_ANALYZER_INSPECTOR_MSGKIND_CLOSE:
+          m_inspHandle = -1;
+          this->setState(POWER_PROCESSOR_IDLE, "Inspector closed");
+          break;
 
-      case SUSCAN_ANALYZER_INSPECTOR_MSGKIND_WRONG_KIND:
-      case SUSCAN_ANALYZER_INSPECTOR_MSGKIND_WRONG_OBJECT:
-      case SUSCAN_ANALYZER_INSPECTOR_MSGKIND_WRONG_HANDLE:
-        this->setState(POWER_PROCESSOR_IDLE, "Error during channel opening");
-        break;
+        case SUSCAN_ANALYZER_INSPECTOR_MSGKIND_WRONG_KIND:
+        case SUSCAN_ANALYZER_INSPECTOR_MSGKIND_WRONG_OBJECT:
+        case SUSCAN_ANALYZER_INSPECTOR_MSGKIND_WRONG_HANDLE:
+          this->setState(POWER_PROCESSOR_IDLE, "Error during channel opening");
+          break;
 
-      case SUSCAN_ANALYZER_INSPECTOR_MSGKIND_SET_TLE:
-        break;
 
-      case SUSCAN_ANALYZER_INSPECTOR_MSGKIND_ORBIT_REPORT:
-        break;
+        case SUSCAN_ANALYZER_INSPECTOR_MSGKIND_SET_TLE:
+          break;
 
-      default:
-        break;
+        case SUSCAN_ANALYZER_INSPECTOR_MSGKIND_ORBIT_REPORT:
+          break;
+
+        default:
+          break;
+      }
+    } else {
+      if (msg.getKind() == SUSCAN_ANALYZER_INSPECTOR_MSGKIND_SIGNAL
+          && msg.getSignalName() == "scaling") {
+        m_haveScaling = true;
+        m_bpeScaling  = msg.getSignalValue();
+      }
     }
   }
 }
@@ -458,6 +499,9 @@ PowerProcessor::onInspectorSamples(Suscan::SamplesMessage const &msg)
           lastMeasurement = power;
         else
           SU_SPLPF_FEED(lastMeasurement, power, m_alpha);
+
+        if (m_haveBpe && m_haveScaling && sampCount > 0)
+          suscan_bpe_feed(&m_bpe, power, m_bpeScaling);
 
         emit measurement(lastMeasurement);
 
