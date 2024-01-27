@@ -6,6 +6,8 @@ DEFINES += AMATEURDSN_LIBRARY
 CONFIG += c++11
 CONFIG += unversioned_libname unversioned_soname
 
+unix: QMAKE_LFLAGS += -rdynamic
+
 isEmpty(PLUGIN_DIRECTORY) {
   _HOME = $$(HOME)
   isEmpty(_HOME) {
@@ -57,7 +59,10 @@ SOURCES += \
 INCLUDEPATH += $$SUWIDGETS_INSTALL_HEADERS $$SIGDIGGER_INSTALL_HEADERS
 
 unix: CONFIG += link_pkgconfig
-unix: PKGCONFIG += suscan sigutils fftw3 sndfile
+unix: PKGCONFIG += suscan sigutils fftw3 sndfile volk
+
+darwin: QMAKE_LFLAGS += -undefined dynamic_lookup
+darwin: LIBS += -lsuwidgets
 
 CONFIG += c++11
 

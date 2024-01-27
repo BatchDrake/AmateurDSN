@@ -28,8 +28,8 @@ namespace Ui {
 }
 
 namespace Suscan {
-  class AnalyzerRequestTracker;
-  class AnalyzerRequest;
+  class  AnalyzerRequestTracker;
+  struct AnalyzerRequest;
 }
 
 namespace SigDigger {
