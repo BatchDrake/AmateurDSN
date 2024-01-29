@@ -464,11 +464,16 @@ PowerProcessor::onInspectorMessage(Suscan::InspectorMessage const &msg)
         default:
           break;
       }
-    } else {
-      if (msg.getKind() == SUSCAN_ANALYZER_INSPECTOR_MSGKIND_SIGNAL
-          && msg.getSignalName() == "scaling") {
+    }
+
+    if (msg.getKind() == SUSCAN_ANALYZER_INSPECTOR_MSGKIND_SIGNAL) {
+      auto name = msg.getSignalName();
+
+      if (msg.getSignalName() == "scaling") {
         m_haveScaling = true;
         m_bpeScaling  = msg.getSignalValue();
+      } else if (msg.getSignalName() == "insp.true_bw") {
+        m_trueBandwidth = msg.getSignalValue();
       }
     }
   }
@@ -551,7 +556,9 @@ PowerProcessor::onOpened(Suscan::AnalyzerRequest const &req)
     m_trueBandwidth   = adjustBandwidth(m_desiredBandwidth);
 
     // Adjust bandwidth to something that is physical and determined by the FFT
+    // This will trigger the receiption of an insp.true_bw signal
     m_analyzer->setInspectorBandwidth(m_inspHandle, m_trueBandwidth);
+
     // Enter in configuring state
     this->configureInspector();
   }
