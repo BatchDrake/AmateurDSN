@@ -524,7 +524,7 @@ SNRTool::refreshMeasurements()
   if (bpe) {
     if (m_signalNoiseProcessor->haveBpe()) {
       qreal mode  = m_signalNoiseProcessor->powerModeBpe() * snScale;
-      qreal delta = 5 * m_signalNoiseProcessor->powerDeltaBpe() * snScale;
+      qreal delta = m_signalNoiseProcessor->powerDeltaBpe() * snScale;
 
       qreal modeDb       = 10 * log10(mode);
       qreal modePlusDDb  = 10 * log10(mode + delta);
@@ -566,13 +566,11 @@ SNRTool::refreshMeasurements()
   if (bpe) {
     if (m_noiseProcessor->haveBpe()) {
       qreal mode  = m_noiseProcessor->powerModeBpe() * nScale;
-      qreal delta = 5 * m_noiseProcessor->powerDeltaBpe() * nScale;
+      qreal delta = m_noiseProcessor->powerDeltaBpe() * nScale;
 
       qreal modeDb       = 10 * log10(mode);
       qreal modePlusDDb  = 10 * log10(mode + delta);
       qreal deltaDb      = modePlusDDb - modeDb;
-
-      printf("N:%.15e,%.15e\n", mode, delta);
 
       QString strMode    = SuWidgetsHelpers::formatQuantity(mode, 7, units);
       QString strDelta   = SuWidgetsHelpers::formatQuantity(delta, 7, units);
