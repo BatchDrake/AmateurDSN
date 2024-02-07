@@ -524,14 +524,14 @@ SNRTool::refreshMeasurements()
   if (bpe) {
     if (m_signalNoiseProcessor->haveBpe()) {
       qreal mode  = m_signalNoiseProcessor->powerModeBpe() * snScale;
-      qreal delta = m_signalNoiseProcessor->powerDeltaBpe() * snScale;
+      qreal delta = 5 * m_signalNoiseProcessor->powerDeltaBpe() * snScale;
 
-      qreal modeDb       = SU_POWER_DB_RAW(SU_ASFLOAT(mode));
-      qreal modePlusDDb  = SU_POWER_DB_RAW(SU_ASFLOAT(mode + delta));
+      qreal modeDb       = 10 * log10(mode);
+      qreal modePlusDDb  = 10 * log10(mode + delta);
       qreal deltaDb      = modePlusDDb - modeDb;
 
-      QString strMode    = SuWidgetsHelpers::formatQuantity(mode, 3, units);
-      QString strDelta   = SuWidgetsHelpers::formatQuantity(delta, 3, units);
+      QString strMode    = SuWidgetsHelpers::formatQuantity(mode, 7, units);
+      QString strDelta   = SuWidgetsHelpers::formatQuantity(delta, 7, units);
 
       QString strModeDb  = QString::asprintf("%+6.3f %s", modeDb, dbUnits);
       QString strDeltaDb = QString::asprintf("%6.3f %s", deltaDb, dbUnits);
@@ -566,14 +566,16 @@ SNRTool::refreshMeasurements()
   if (bpe) {
     if (m_noiseProcessor->haveBpe()) {
       qreal mode  = m_noiseProcessor->powerModeBpe() * nScale;
-      qreal delta = m_noiseProcessor->powerDeltaBpe() * nScale;
+      qreal delta = 5 * m_noiseProcessor->powerDeltaBpe() * nScale;
 
-      qreal modeDb       = SU_POWER_DB_RAW(SU_ASFLOAT(mode));
-      qreal modePlusDDb  = SU_POWER_DB_RAW(SU_ASFLOAT(mode + delta));
+      qreal modeDb       = 10 * log10(mode);
+      qreal modePlusDDb  = 10 * log10(mode + delta);
       qreal deltaDb      = modePlusDDb - modeDb;
 
-      QString strMode    = SuWidgetsHelpers::formatQuantity(mode, 3, units);
-      QString strDelta   = SuWidgetsHelpers::formatQuantity(delta, 3, units);
+      printf("N:%.15e,%.15e\n", mode, delta);
+
+      QString strMode    = SuWidgetsHelpers::formatQuantity(mode, 7, units);
+      QString strDelta   = SuWidgetsHelpers::formatQuantity(delta, 7, units);
 
       QString strModeDb  = QString::asprintf("%+6.3f %s", modeDb, dbUnits);
       QString strDeltaDb = QString::asprintf("%6.3f %s", deltaDb, dbUnits);

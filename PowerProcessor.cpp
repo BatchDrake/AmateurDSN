@@ -505,6 +505,7 @@ PowerProcessor::onInspectorSamples(Suscan::SamplesMessage const &msg)
         else
           SU_SPLPF_FEED(lastMeasurement, power, m_alpha);
 
+        printf("Got: %g, m_bpeScaling: %g\n", power, m_bpeScaling);
         if (m_haveBpe && m_haveScaling && sampCount > 0)
           suscan_bpe_feed(&m_bpe, power, m_bpeScaling);
 
