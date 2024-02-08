@@ -502,6 +502,7 @@ SNRTool::refreshMeasurements()
   const char *dbUnits;
   bool bpe = ui->displayBayesCheck->isChecked();
   qreal snScale, nScale;
+  bool haveSignal, haveNoise;
 
   if (ui->normalizeCheck->isChecked()) {
     signalNoise = m_currentSignalNoiseDensity;
@@ -521,10 +522,13 @@ SNRTool::refreshMeasurements()
 
   // Display noise
 
+  haveSignal = signalNoise > 0;
+  haveNoise  = noise >= 0;
+
   if (bpe) {
     if (m_signalNoiseProcessor->haveBpe()) {
       qreal mode  = m_signalNoiseProcessor->powerModeBpe() * snScale;
-      qreal delta = m_signalNoiseProcessor->powerDeltaBpe() * snScale;
+      qreal delta = 5 * m_signalNoiseProcessor->powerDeltaBpe() * snScale;
 
       qreal modeDb       = 10 * log10(mode);
       qreal modePlusDDb  = 10 * log10(mode + delta);
@@ -551,22 +555,23 @@ SNRTool::refreshMeasurements()
       signalNoise = 0;
     }
   } else {
-    if (signalNoise <= 0) {
-      ui->spnLabel->setText("N/A");
-      ui->spnDbLabel->setText("N/A");
-    } else {
+
+    if (haveSignal) {
       ui->spnLabel->setText(
             SuWidgetsHelpers::formatQuantity(signalNoise, 3, units));
       ui->spnDbLabel->setText(
             QString::asprintf("%+6.3f %s",
               SU_POWER_DB_RAW(SU_ASFLOAT(signalNoise)), dbUnits));
+    } else {
+      ui->spnLabel->setText("N/A");
+      ui->spnDbLabel->setText("N/A");
     }
   }
 
   if (bpe) {
     if (m_noiseProcessor->haveBpe()) {
       qreal mode  = m_noiseProcessor->powerModeBpe() * nScale;
-      qreal delta = m_noiseProcessor->powerDeltaBpe() * nScale;
+      qreal delta = 5 * m_noiseProcessor->powerDeltaBpe() * nScale;
 
       qreal modeDb       = 10 * log10(mode);
       qreal modePlusDDb  = 10 * log10(mode + delta);
@@ -593,65 +598,66 @@ SNRTool::refreshMeasurements()
       noise = -1;
     }
   } else {
-    if (noise <= 0) {
-      ui->nLabel->setText("N/A");
-      ui->nDbLabel->setText("N/A");
-    } else {
+    if (haveNoise) {
       ui->nLabel->setText(
             SuWidgetsHelpers::formatQuantity(noise, 3, units));
       ui->nDbLabel->setText(
             QString::asprintf("%+6.3f %s",
               SU_POWER_DB_RAW(SU_ASFLOAT(noise)), dbUnits));
+    } else {
+      ui->nLabel->setText("N/A");
+      ui->nDbLabel->setText("N/A");
     }
   }
 
+
   snnr = signalNoise / noise;
-  if (snnr <= 0) {
-    ui->snnrLabel->setText("N/A");
-    ui->snnrDbLabel->setText("N/A");
-  } else {
+  if (haveSignal && haveNoise && snnr > 0) {
     ui->snnrLabel->setText(
           SuWidgetsHelpers::formatScientific(snnr));
     ui->snnrDbLabel->setText(
           QString::asprintf("%+6.3f dB",
             SU_POWER_DB_RAW(SU_ASFLOAT(snnr))));
+  } else {
+    ui->snnrLabel->setText("N/A");
+    ui->snnrDbLabel->setText("N/A");
   }
 
   snr = snnr - 1;
-  if (snr <= 0) {
-    ui->snrLabel->setText("N/A");
-    ui->snrDbLabel->setText("N/A");
-  } else {
+  if (haveSignal && haveNoise && snr > 0) {
     ui->snrLabel->setText(
           SuWidgetsHelpers::formatScientific(snr));
     ui->snrDbLabel->setText(
           QString::asprintf("%+6.3f dB",
             SU_POWER_DB_RAW(SU_ASFLOAT(snr))));
+  } else {
+    ui->snrLabel->setText("N/A");
+    ui->snrDbLabel->setText("N/A");
   }
 
   // The eSNR (not the eSNNR) is the easiest one to compute
   esnr = snr * m_signalNoiseWidth / m_panelConfig->refbw;
-  if (esnr <= 0) {
-    ui->esnrLabel->setText("N/A");
-    ui->esnrDbLabel->setText("N/A");
-  } else {
+  if (haveSignal && haveNoise && esnr > 0) {
     ui->esnrLabel->setText(
           SuWidgetsHelpers::formatScientific(esnr));
     ui->esnrDbLabel->setText(
           QString::asprintf("%+6.3f dB",
             SU_POWER_DB_RAW(SU_ASFLOAT(esnr))));
+  } else {
+    ui->esnrLabel->setText("N/A");
+    ui->esnrDbLabel->setText("N/A");
   }
 
   esnnr = esnr + 1;
-  if (esnnr <= 0) {
-    ui->esnnrLabel->setText("N/A");
-    ui->esnnrDbLabel->setText("N/A");
-  } else {
+  if (haveSignal && haveNoise && esnnr > 0) {
     ui->esnnrLabel->setText(
           SuWidgetsHelpers::formatScientific(esnnr));
     ui->esnnrDbLabel->setText(
           QString::asprintf("%+6.3f dB",
             SU_POWER_DB_RAW(SU_ASFLOAT(esnnr))));
+  } else {
+    ui->esnnrLabel->setText("N/A");
+    ui->esnnrDbLabel->setText("N/A");
   }
 
   m_clipBoardText =
