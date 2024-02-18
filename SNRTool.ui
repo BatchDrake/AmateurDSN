@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>313</width>
-    <height>540</height>
+    <height>579</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -57,7 +57,7 @@
        <number>3</number>
       </property>
       <item row="3" column="2" colspan="2">
-       <widget class="FrequencySpinBox" name="snBandwidthSpin" native="true"/>
+       <widget class="FrequencySpinBox" name="snBandwidthSpin"/>
       </item>
       <item row="0" column="1">
        <widget class="QLabel" name="label_7">
@@ -147,7 +147,7 @@
        </widget>
       </item>
       <item row="2" column="2" colspan="2">
-       <widget class="FrequencySpinBox" name="snFrequencySpin" native="true"/>
+       <widget class="FrequencySpinBox" name="snFrequencySpin"/>
       </item>
       <item row="2" column="1">
        <widget class="QLabel" name="label_5">
@@ -200,7 +200,7 @@
        </widget>
       </item>
       <item row="1" column="1" colspan="2">
-       <widget class="FrequencySpinBox" name="nFrequencySpin" native="true"/>
+       <widget class="FrequencySpinBox" name="nFrequencySpin"/>
       </item>
       <item row="2" column="0">
        <widget class="QLabel" name="label_2">
@@ -216,7 +216,7 @@
        </widget>
       </item>
       <item row="2" column="1" colspan="2">
-       <widget class="FrequencySpinBox" name="nBandwidthSpin" native="true"/>
+       <widget class="FrequencySpinBox" name="nBandwidthSpin"/>
       </item>
       <item row="3" column="0" colspan="3">
        <widget class="QFrame" name="frame">
@@ -312,7 +312,7 @@
        </widget>
       </item>
       <item row="9" column="1" colspan="2">
-       <widget class="FrequencySpinBox" name="refBwSpin" native="true"/>
+       <widget class="FrequencySpinBox" name="refBwSpin"/>
       </item>
       <item row="7" column="0">
        <widget class="QLabel" name="label_10">
@@ -421,7 +421,7 @@
        </widget>
       </item>
       <item row="12" column="1" colspan="2">
-       <widget class="TimeSpinBox" name="tauSpinBox" native="true">
+       <widget class="TimeSpinBox" name="tauSpinBox">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
           <horstretch>0</horstretch>
@@ -544,7 +544,7 @@
       <item row="11" column="0">
        <widget class="QLabel" name="label_8">
         <property name="text">
-         <string>eSNR</string>
+         <string>C/N&lt;sub&gt;0&lt;/sub&gt;</string>
         </property>
        </widget>
       </item>
@@ -572,7 +572,10 @@
       <item row="10" column="0">
        <widget class="QLabel" name="label_4">
         <property name="text">
-         <string>eSNNR</string>
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;CN/N&lt;span style=&quot; vertical-align:sub;&quot;&gt;0&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+        <property name="textFormat">
+         <enum>Qt::RichText</enum>
         </property>
        </widget>
       </item>
