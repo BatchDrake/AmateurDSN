@@ -1,4 +1,5 @@
 QT += core widgets gui
+greaterThan(QT_MAJOR_VERSION, 5): QT += openglwidgets
 
 TEMPLATE = lib
 DEFINES += AMATEURDSN_LIBRARY
